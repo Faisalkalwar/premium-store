@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check ownership
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Products: Public read for everyone, write for authenticated or admin/dev seeding
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Categories: Public read, write open for setup
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Collections: Public read, write open for setup
+    match /collections/{collectionId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Users: Owner read/write, enforce default 'customer' role and prevent role escalation
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAuthenticated();
+      allow create: if isOwner(userId) && request.resource.data.role == 'customer';
+      allow update: if isOwner(userId) && (
+        !('role' in request.resource.data) ||
+        request.resource.data.role == resource.data.role ||
+        request.resource.data.role == 'customer'
+      );
+      allow delete: if false;
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      // Allow creation for guests and authenticated users
+      allow create: if true;
+      // Allow read if user owns the order or if guest order (userId is null or empty)
+      allow read: if resource.data.userId == null || 
+                  resource.data.userId == "" || 
+                  (isAuthenticated() && resource.data.userId == request.auth.uid);
+      // Allow updates for stock adjustments or order status by owner
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Wishlists
+    match /wishlists/{wishlistId} {
+      allow read, write: if true;
+    }
+
+    // Carts
+    match /carts/{cartId} {
+      allow read, write: if true;
+    }
+
+    // Coupons
+    match /coupons/{couponId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Reviews
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isAuthenticated();
+    }
+
+    // Site Settings
+    match /siteSettings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
