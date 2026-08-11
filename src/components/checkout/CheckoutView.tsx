@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { createValidatedOrder, CreateOrderParams } from '../../services/firebaseService';
-import { OrderShippingAddress } from '../../types';
+import { OrderShippingAddress, formatPrice } from '../../types';
 
 export const CheckoutView: React.FC = () => {
   const {
@@ -103,7 +103,7 @@ export const CheckoutView: React.FC = () => {
   // Calculated Order Financials
   const discountAmount = cartTotal * discountPercent;
   const shippingFee =
-    cartTotal >= 75 ? 0 : shippingOption === 'express' ? 18.0 : 9.95;
+    cartTotal >= 3500 ? 0 : shippingOption === 'express' ? 500 : 250;
   const grandTotal = Math.max(0, cartTotal - discountAmount + shippingFee);
 
   // Apply promo handler
@@ -301,7 +301,7 @@ export const CheckoutView: React.FC = () => {
                       required
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+1 (555) 000-0000"
+                      placeholder="+92 323 0000000"
                       className="w-full bg-neutral-900 border border-neutral-800 text-white font-mono text-xs px-3.5 py-3 pl-10 focus:outline-none focus:border-[#00e65c]"
                     />
                     <Phone size={16} className="absolute left-3 top-3.5 text-neutral-500" />
@@ -473,7 +473,7 @@ export const CheckoutView: React.FC = () => {
                     </p>
                   </div>
                   <div className="text-right font-mono font-bold text-white">
-                    ${(item.product.price * item.quantity).toFixed(2)}
+                    {formatPrice(item.product.price * item.quantity)}
                   </div>
                 </div>
               ))}
@@ -522,27 +522,27 @@ export const CheckoutView: React.FC = () => {
             <div className="space-y-2 text-xs font-mono text-neutral-400 pt-2 border-t border-neutral-800">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span className="text-white">${cartTotal.toFixed(2)}</span>
+                <span className="text-white">{formatPrice(cartTotal)}</span>
               </div>
 
               {discountAmount > 0 && (
                 <div className="flex justify-between text-[#00e65c]">
                   <span>Discount</span>
-                  <span>-${discountAmount.toFixed(2)}</span>
+                  <span>-{formatPrice(discountAmount)}</span>
                 </div>
               )}
 
               <div className="flex justify-between">
                 <span>Shipping</span>
                 <span className="text-[#00e65c]">
-                  {shippingFee === 0 ? 'FREE' : `$${shippingFee.toFixed(2)}`}
+                  {shippingFee === 0 ? 'FREE' : formatPrice(shippingFee)}
                 </span>
               </div>
 
               <div className="pt-3 border-t border-neutral-800 flex justify-between items-baseline">
                 <span className="font-syne font-extrabold text-sm text-white">TOTAL DUE (COD)</span>
                 <span className="font-syne font-extrabold text-2xl text-[#00e65c]">
-                  ${grandTotal.toFixed(2)}
+                  {formatPrice(grandTotal)}
                 </span>
               </div>
             </div>
@@ -574,6 +574,36 @@ export const CheckoutView: React.FC = () => {
               <p className="text-[10px] font-mono text-neutral-600">
                 By placing this order, you agree to inspect and pay cash upon courier arrival.
               </p>
+            </div>
+
+            {/* OFFICIAL CUSTOMER SUPPORT ASSISTANCE BOX */}
+            <div className="mt-4 p-4 bg-neutral-900/90 border border-neutral-800 text-xs font-mono space-y-2">
+              <p className="font-syne font-extrabold text-white text-xs uppercase flex items-center justify-between">
+                <span>NEED ORDER ASSISTANCE?</span>
+                <span className="text-[#00e65c]">SUPPORT</span>
+              </p>
+              <div className="text-neutral-300 space-y-1 text-[11px]">
+                <p className="flex items-center justify-between">
+                  <span className="text-neutral-500">WhatsApp:</span>
+                  <a
+                    href="https://wa.me/923237506649"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[#00e65c] font-bold hover:underline"
+                  >
+                    +92 323 7506649
+                  </a>
+                </p>
+                <p className="flex items-center justify-between">
+                  <span className="text-neutral-500">Email:</span>
+                  <a href="mailto:thepremiumstoree@gmail.com" className="text-white hover:text-[#00e65c]">
+                    thepremiumstoree@gmail.com
+                  </a>
+                </p>
+                <p className="text-[10px] text-neutral-500 pt-1 border-t border-neutral-800/60 leading-tight">
+                  Flagship: Unique Shopping Mall, Main Autobhan Road, Hyderabad, Sindh, Pakistan
+                </p>
+              </div>
             </div>
           </div>
         </form>

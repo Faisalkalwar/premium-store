@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Heart, ShoppingBag, Star, ShieldCheck, Truck, RefreshCw } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
+import { formatPrice } from '../../types';
 
 export const QuickViewModal: React.FC = () => {
   const {
@@ -42,7 +43,7 @@ export const QuickViewModal: React.FC = () => {
       <div className="absolute inset-0" onClick={handleClose} />
 
       {/* Modal Content Box */}
-      <div className="relative w-full max-w-4xl bg-[#0f0f0f] border border-neutral-800 rounded-none shadow-2xl overflow-hidden z-10 max-h-[90vh] flex flex-col md:flex-row">
+      <div className="relative w-full max-w-4xl bg-[#0f0f0f] border border-neutral-800 rounded-none shadow-2xl overflow-hidden z-10 max-h-[90vh] flex flex-col md:flex-row" role="dialog" aria-modal="true" aria-label={`Quick view ${product.name}`}>
         {/* Close Button */}
         <button
           onClick={handleClose}
@@ -111,11 +112,11 @@ export const QuickViewModal: React.FC = () => {
             {/* Pricing */}
             <div className="flex items-baseline gap-3 mb-4 pb-4 border-b border-neutral-800">
               <span className="font-syne font-extrabold text-2xl text-[#00e65c]">
-                ${product.price.toFixed(2)}
+                {formatPrice(product.price)}
               </span>
               {product.originalPrice && (
                 <span className="text-sm text-neutral-500 line-through font-mono">
-                  ${product.originalPrice.toFixed(2)}
+                  {formatPrice(product.originalPrice)}
                 </span>
               )}
             </div>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Heart, Eye, ShoppingBag, Star } from 'lucide-react';
-import { Product } from '../../types';
+import { Product, formatPrice } from '../../types';
 import { useShop } from '../../context/ShopContext';
+import { OptimizedImage } from '../common/OptimizedImage';
 
 interface ProductCardProps {
   product: Product;
@@ -81,11 +82,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         className="relative aspect-[3/4] w-full bg-neutral-900 overflow-hidden cursor-pointer"
         onClick={handleProductClick}
       >
-        <img
+        <OptimizedImage
           src={isHovered && product.hoverImage ? product.hoverImage : product.image}
           alt={product.name}
           className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
-          loading="lazy"
         />
 
         {/* OVERLAY ACTION BUTTONS */}
@@ -169,11 +169,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <div className="flex items-center justify-between pt-2 border-t border-neutral-800/80">
           <div className="flex items-baseline gap-2">
             <span className="font-syne font-extrabold text-base text-[#00e65c]">
-              ${product.price.toFixed(2)}
+              {formatPrice(product.price)}
             </span>
             {product.originalPrice && (
               <span className="text-xs text-neutral-500 line-through font-mono">
-                ${product.originalPrice.toFixed(2)}
+                {formatPrice(product.originalPrice)}
               </span>
             )}
           </div>

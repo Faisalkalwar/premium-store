@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { ProductCard } from '../ui/ProductCard';
-import { Product } from '../../types';
+import { Product, formatPrice } from '../../types';
 
 export const WishlistView: React.FC = () => {
   const {
@@ -205,11 +205,11 @@ export const WishlistView: React.FC = () => {
 
                       <div className="flex items-baseline gap-2">
                         <span className="font-syne font-extrabold text-lg text-[#00e65c]">
-                          ${product.price.toFixed(2)}
+                          {formatPrice(product.price)}
                         </span>
                         {product.originalPrice && (
                           <span className="text-xs font-mono text-neutral-500 line-through">
-                            ${product.originalPrice.toFixed(2)}
+                            {formatPrice(product.originalPrice)}
                           </span>
                         )}
                       </div>

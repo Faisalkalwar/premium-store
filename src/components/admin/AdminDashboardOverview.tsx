@@ -17,7 +17,7 @@ import {
 import { useShop } from '../../context/ShopContext';
 import { AdminLayout } from './AdminLayout';
 import { getAdminDashboardStats } from '../../services/firebaseService';
-import { Order, Product } from '../../types';
+import { Order, Product, formatPrice } from '../../types';
 
 export const AdminDashboardOverview: React.FC = () => {
   const { navigateTo, navigateToAdminProductEdit, navigateToOrderDetail } = useShop();
@@ -103,7 +103,7 @@ export const AdminDashboardOverview: React.FC = () => {
               <DollarSign size={18} className="text-[#00e65c]" />
             </div>
             <p className="font-syne font-black text-2xl text-white">
-              ${stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              {formatPrice(stats.totalRevenue)}
             </p>
             <p className="font-mono text-[10px] text-neutral-500 flex items-center gap-1">
               <TrendingUp size={12} className="text-[#00e65c]" />
@@ -218,7 +218,7 @@ export const AdminDashboardOverview: React.FC = () => {
                         <td className="py-3 px-2 font-bold text-white">{order.orderNumber}</td>
                         <td className="py-3 px-2 truncate max-w-[140px]">{order.customerName}</td>
                         <td className="py-3 px-2 font-bold text-[#00e65c]">
-                          ${order.total.toFixed(2)}
+                          {formatPrice(order.total)}
                         </td>
                         <td className="py-3 px-2">
                           <span className="bg-neutral-800 px-2 py-0.5 text-[10px] text-neutral-300 border border-neutral-700">

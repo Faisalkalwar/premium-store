@@ -337,10 +337,10 @@ export const AdminProductForm: React.FC<AdminProductFormProps> = ({ mode }) => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
                   <div>
-                    <label className="block text-neutral-400 mb-1">REGULAR PRICE ($) *</label>
+                    <label className="block text-neutral-400 mb-1">REGULAR PRICE (PKR Rs.) *</label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="1"
                       min="0"
                       value={price}
                       onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
@@ -350,10 +350,10 @@ export const AdminProductForm: React.FC<AdminProductFormProps> = ({ mode }) => {
                   </div>
 
                   <div>
-                    <label className="block text-neutral-400 mb-1">SALE PRICE ($)</label>
+                    <label className="block text-neutral-400 mb-1">SALE PRICE (PKR Rs.)</label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="1"
                       min="0"
                       value={salePrice !== undefined ? salePrice : ''}
                       onChange={(e) =>

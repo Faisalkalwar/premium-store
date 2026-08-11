@@ -4,9 +4,17 @@ import { Zap, ArrowRight } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 
 export const NewArrivalsSection: React.FC = () => {
-  const { products, setSelectedCategory } = useShop();
+  const { products, setSelectedCategory, cmsContent } = useShop();
+  const cms = cmsContent?.newArrivals;
 
-  const newArrivals = products.filter((p) => p.isNew || p.category === 'new-arrivals').slice(0, 4);
+  if (cms?.enabled === false) return null;
+
+  const count = cms?.displayCount || 4;
+  const tagline = cms?.tagline || 'WEEKLY DROP 04';
+  const title = cms?.title || 'NEW ARRIVALS';
+  const buttonText = cms?.buttonText || 'VIEW ALL NEW DROPS';
+
+  const newArrivals = products.filter((p) => p.isNew || p.category === 'new-arrivals').slice(0, count);
 
   const handleViewAll = () => {
     setSelectedCategory('new-arrivals');
@@ -22,10 +30,10 @@ export const NewArrivalsSection: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 text-xs font-mono text-[#00e65c] uppercase tracking-widest mb-2">
               <Zap size={14} className="animate-bounce" />
-              WEEKLY DROP 04
+              <span>{tagline}</span>
             </div>
             <h2 className="font-syne font-extrabold text-3xl sm:text-5xl uppercase tracking-tight text-white">
-              NEW <span className="text-[#00e65c]">ARRIVALS</span>
+              {title}
             </h2>
           </div>
 
@@ -33,7 +41,7 @@ export const NewArrivalsSection: React.FC = () => {
             onClick={handleViewAll}
             className="inline-flex items-center gap-2 font-syne font-extrabold text-xs text-[#00e65c] hover:text-white uppercase tracking-wider underline underline-offset-4 transition-colors"
           >
-            VIEW ALL NEW DROPS ({products.filter((p) => p.isNew || p.category === 'new-arrivals').length})
+            <span>{buttonText}</span>
             <ArrowRight size={14} />
           </button>
         </div>
@@ -48,4 +56,3 @@ export const NewArrivalsSection: React.FC = () => {
     </section>
   );
 };
-

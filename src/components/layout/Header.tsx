@@ -36,23 +36,32 @@ export const Header: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navItems: { label: string; category: ProductCategory | 'lookbook' }[] = [
+  const navItems: { label: string; category: ProductCategory | 'lookbook' | 'contact' }[] = [
     { label: 'SHIRTS', category: 'shirts' },
     { label: 'CAPS', category: 'caps' },
     { label: 'JEANS', category: 'jeans' },
     { label: 'NEW ARRIVALS', category: 'new-arrivals' },
     { label: 'BEST SELLERS', category: 'best-sellers' },
     { label: 'LOOKBOOK', category: 'lookbook' },
+    { label: 'CONTACT', category: 'contact' },
   ];
 
-  const handleNavClick = (category: ProductCategory | 'lookbook') => {
-    if (category === 'lookbook') {
-      const el = document.getElementById('lookbook-section');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+  const handleNavClick = (category: ProductCategory | 'lookbook' | 'contact') => {
+    if (category === 'contact') {
+      navigateTo('contact');
+    } else if (category === 'lookbook') {
+      navigateTo('home');
+      setTimeout(() => {
+        const el = document.getElementById('lookbook-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
     } else {
       setSelectedCategory(category);
-      const el = document.getElementById('products-section');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      navigateTo('home');
+      setTimeout(() => {
+        const el = document.getElementById('products-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
     }
   };
 
@@ -77,9 +86,9 @@ export const Header: React.FC = () => {
             </button>
 
             {/* BRAND LOGO */}
-            <a href="/" className="flex items-center">
+            <button onClick={() => navigateTo('home')} className="flex items-center focus:outline-none">
               <Logo />
-            </a>
+            </button>
           </div>
 
           {/* DESKTOP NAVIGATION */}

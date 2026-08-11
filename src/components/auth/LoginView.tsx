@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useShop } from '../../context/ShopContext';
 import { loginWithEmailPassword, signInWithGoogle } from '../../services/firebaseService';
 import { Lock, Mail, ArrowRight, Loader2, ShieldCheck } from 'lucide-react';
+import { Logo } from '../layout/Logo';
 
 export const LoginView: React.FC = () => {
   const { navigateTo, showToast } = useShop();
@@ -51,8 +52,8 @@ export const LoginView: React.FC = () => {
     <div className="max-w-md mx-auto px-4 py-12 sm:py-20">
       <div className="bg-neutral-950 border border-neutral-800 p-6 sm:p-8 rounded-none shadow-2xl">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-neutral-900 border border-neutral-800 text-[#00e65c] mb-4">
-            <Lock size={22} />
+          <div className="flex justify-center mb-4">
+            <Logo heightClass="h-10 sm:h-12" />
           </div>
           <h1 className="font-syne font-extrabold text-2xl sm:text-3xl uppercase tracking-tight text-white">
             MEMBER <span className="text-[#00e65c]">SIGN IN</span>

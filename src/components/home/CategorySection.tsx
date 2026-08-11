@@ -5,10 +5,21 @@ import { useShop } from '../../context/ShopContext';
 import { ProductCategory } from '../../types';
 
 export const CategorySection: React.FC = () => {
-  const { setSelectedCategory, selectedCategory } = useShop();
+  const { setSelectedCategory, selectedCategory, cmsContent } = useShop();
+  const featCat = cmsContent?.featuredCategories;
 
-  const handleSelect = (categoryId: ProductCategory) => {
-    setSelectedCategory(categoryId);
+  if (featCat?.enabled === false) return null;
+
+  const categories = featCat?.categories && featCat.categories.length > 0
+    ? featCat.categories
+    : CATEGORIES;
+
+  const tagline = featCat?.tagline || 'EXPLORE BY CATEGORY';
+  const title = featCat?.title || 'STREETWEAR CATEGORIES';
+  const subtitle = featCat?.subtitle || 'Discover curated streetwear apparel crafted for maximum comfort, durability and uncompromised style.';
+
+  const handleSelect = (categoryId: string) => {
+    setSelectedCategory(categoryId as ProductCategory);
     const el = document.getElementById('products-section');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
@@ -21,30 +32,30 @@ export const CategorySection: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 text-xs font-mono text-[#00e65c] uppercase tracking-widest mb-2">
               <Sparkles size={14} />
-              EXPLORE BY CATEGORY
+              <span>{tagline}</span>
             </div>
             <h2 className="font-syne font-extrabold text-3xl sm:text-5xl uppercase tracking-tight text-white">
-              STREETWEAR <span className="text-[#00e65c]">CATEGORIES</span>
+              {title}
             </h2>
           </div>
           <p className="text-xs font-mono text-neutral-400 max-w-sm">
-            Discover curated streetwear apparel crafted for maximum comfort, durability and uncompromised style.
+            {subtitle}
           </p>
         </div>
 
         {/* CATEGORIES GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {CATEGORIES.map((cat, idx) => {
-            const isSelected = selectedCategory === cat.id;
+          {categories.map((cat, idx) => {
+            const isSelected = selectedCategory === (cat.linkCategory || cat.id);
             return (
               <div
                 key={cat.id}
-                onClick={() => handleSelect(cat.id)}
+                onClick={() => handleSelect(cat.linkCategory || cat.id)}
                 className={`group relative h-80 sm:h-96 bg-neutral-900 overflow-hidden cursor-pointer border transition-all duration-300 ${
                   isSelected
                     ? 'border-[#00e65c] ring-2 ring-[#00e65c]/50'
                     : 'border-neutral-800 hover:border-neutral-600'
-                } ${idx === 3 || idx === 4 ? 'lg:col-span-1' : ''}`}
+                }`}
               >
                 {/* Background Image */}
                 <img
@@ -61,7 +72,7 @@ export const CategorySection: React.FC = () => {
                 <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
                   <div className="flex justify-between items-start">
                     <span className="bg-black/80 text-neutral-300 border border-neutral-700 font-mono text-[11px] px-2.5 py-1 uppercase backdrop-blur-md">
-                      {cat.itemCount}+ ARTICLES
+                      {cat.itemCount ? `${cat.itemCount}+ ARTICLES` : 'STREETWEAR'}
                     </span>
                     <div className="w-10 h-10 rounded-none bg-black/80 border border-neutral-700 text-white group-hover:bg-[#00e65c] group-hover:text-black group-hover:border-[#00e65c] transition-all flex items-center justify-center">
                       <ArrowUpRight size={20} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />

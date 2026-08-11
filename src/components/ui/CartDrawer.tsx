@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Tag, Plus, Minus } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
+import { formatPrice } from '../../types';
 
 export const CartDrawer: React.FC = () => {
   const {
@@ -21,7 +22,7 @@ export const CartDrawer: React.FC = () => {
 
   if (!isCartOpen) return null;
 
-  const freeShippingThreshold = 75;
+  const freeShippingThreshold = 3500;
   const remainingForFreeShipping = Math.max(0, freeShippingThreshold - cartTotal);
   const freeShippingPercent = Math.min(100, (cartTotal / freeShippingThreshold) * 100);
 
@@ -45,7 +46,7 @@ export const CartDrawer: React.FC = () => {
         onClick={() => setIsCartOpen(false)}
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10" role="dialog" aria-modal="true" aria-label="Shopping Cart Drawer">
         <div className="w-screen max-w-md bg-[#0a0a0a] border-l border-neutral-800 text-white flex flex-col justify-between shadow-2xl">
           {/* CART HEADER */}
           <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
@@ -69,7 +70,7 @@ export const CartDrawer: React.FC = () => {
             <div className="flex justify-between items-center text-xs font-mono text-neutral-300 mb-1.5">
               <span>
                 {remainingForFreeShipping > 0
-                  ? `Add $${remainingForFreeShipping.toFixed(2)} more for FREE EXPRESS SHIPPING`
+                  ? `Add ${formatPrice(remainingForFreeShipping)} more for FREE EXPRESS SHIPPING`
                   : '🎉 YOU UNLOCKED FREE EXPRESS SHIPPING!'}
               </span>
             </div>
@@ -147,7 +148,7 @@ export const CartDrawer: React.FC = () => {
                       </div>
 
                       <span className="font-syne font-bold text-sm text-[#00e65c]">
-                        ${(item.product.price * item.quantity).toFixed(2)}
+                        {formatPrice(item.product.price * item.quantity)}
                       </span>
                     </div>
                   </div>
@@ -183,23 +184,23 @@ export const CartDrawer: React.FC = () => {
               <div className="space-y-1.5 text-xs font-mono text-neutral-400">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span className="text-white">${cartTotal.toFixed(2)}</span>
+                  <span className="text-white">{formatPrice(cartTotal)}</span>
                 </div>
                 {appliedDiscount > 0 && (
                   <div className="flex justify-between text-[#00e65c]">
                     <span>Promo Discount (15%)</span>
-                    <span>-${(cartTotal * appliedDiscount).toFixed(2)}</span>
+                    <span>-{formatPrice(cartTotal * appliedDiscount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span>Estimated Shipping</span>
                   <span className="text-[#00e65c]">
-                    {remainingForFreeShipping === 0 ? 'FREE' : '$9.95'}
+                    {remainingForFreeShipping === 0 ? 'FREE' : 'Rs. 250'}
                   </span>
                 </div>
                 <div className="flex justify-between text-base font-syne font-extrabold text-white pt-2 border-t border-neutral-800">
                   <span>TOTAL</span>
-                  <span className="text-[#00e65c]">${finalTotal.toFixed(2)}</span>
+                  <span className="text-[#00e65c]">{formatPrice(finalTotal)}</span>
                 </div>
               </div>
 

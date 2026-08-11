@@ -1,21 +1,44 @@
 import React, { useState } from 'react';
-import { LOOKBOOK_ITEMS } from '../../data/lookbook';
-import { MOCK_PRODUCTS } from '../../data/mockProducts';
 import { Camera, Plus, ShoppingBag, Eye, X } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
-import { Product } from '../../types';
+import { Product, formatPrice } from '../../types';
 
 export const LookbookSection: React.FC = () => {
-  const { setQuickViewProduct, addToCart } = useShop();
+  const { setQuickViewProduct, addToCart, products, cmsContent } = useShop();
+  const cms = cmsContent?.lookbook;
+
   const [activeLookIndex, setActiveLookIndex] = useState(0);
   const [activeHotspotProduct, setActiveHotspotProduct] = useState<Product | null>(null);
 
-  const currentLook = LOOKBOOK_ITEMS[activeLookIndex];
+  if (cms?.enabled === false) return null;
+
+  const tagline = cms?.tagline || 'EDITORIAL STREETWEAR LOOKBOOK';
+  const title = cms?.title || 'SHOP THE LOOK';
+
+  const looks = cms?.looks && cms.looks.length > 0
+    ? cms.looks
+    : [
+        {
+          id: 'look-1',
+          season: 'METROPOLIS \'26',
+          title: 'METROPOLIS INDUSTRIAL FIT',
+          subtitle: 'Heavyweight Spray Tee paired with Vintage Acid Wash Denim and Premium Trucker Hat.',
+          image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1200&auto=format&fit=crop',
+          hotspots: [
+            { id: 'hs-1', productId: 'p1', topPercent: 38, leftPercent: 52 },
+            { id: 'hs-2', productId: 'p3', topPercent: 72, leftPercent: 48 },
+          ],
+        },
+      ];
+
+  const currentLook = looks[activeLookIndex] || looks[0];
 
   const handleHotspotClick = (productId: string) => {
-    const found = MOCK_PRODUCTS.find((p) => p.id === productId);
+    const found = products.find((p) => p.id === productId || p.sku === productId);
     if (found) {
       setActiveHotspotProduct(found);
+    } else if (products.length > 0) {
+      setActiveHotspotProduct(products[0]);
     }
   };
 
@@ -27,16 +50,16 @@ export const LookbookSection: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 text-xs font-mono text-[#00e65c] uppercase tracking-widest mb-2">
               <Camera size={14} />
-              EDITORIAL STREETWEAR LOOKBOOK
+              <span>{tagline}</span>
             </div>
             <h2 className="font-syne font-extrabold text-3xl sm:text-5xl uppercase tracking-tight text-white">
-              SHOP THE <span className="text-[#00e65c]">LOOK</span>
+              {title}
             </h2>
           </div>
 
           {/* LOOKBOOK SWITCHER TABS */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2">
-            {LOOKBOOK_ITEMS.map((item, idx) => (
+            {looks.map((item, idx) => (
               <button
                 key={item.id}
                 onClick={() => {
@@ -68,7 +91,7 @@ export const LookbookSection: React.FC = () => {
 
             {/* HOTSPOT PINS */}
             {currentLook.hotspots.map((hs) => {
-              const product = MOCK_PRODUCTS.find((p) => p.id === hs.productId);
+              const product = products.find((p) => p.id === hs.productId || p.sku === hs.productId) || products[0];
               if (!product) return null;
               const isSelected = activeHotspotProduct?.id === product.id;
 
@@ -137,61 +160,40 @@ export const LookbookSection: React.FC = () => {
                         {activeHotspotProduct.name}
                       </h5>
                       <span className="font-syne font-extrabold text-base text-[#00e65c]">
-                        ${activeHotspotProduct.price.toFixed(2)}
+                        {formatPrice(activeHotspotProduct.price)}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setQuickViewProduct(activeHotspotProduct)}
-                      className="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white font-syne font-bold text-xs py-2 uppercase flex items-center justify-center gap-1"
-                    >
-                      <Eye size={14} />
-                      QUICK VIEW
-                    </button>
-                    <button
-                      onClick={() => addToCart(activeHotspotProduct)}
-                      className="flex-1 bg-[#00e65c] text-black hover:bg-[#00ff66] font-syne font-extrabold text-xs py-2 uppercase flex items-center justify-center gap-1"
+                      onClick={() => addToCart(activeHotspotProduct, activeHotspotProduct.sizes[0] || 'M', activeHotspotProduct.colors[0] || 'Black')}
+                      className="flex-1 bg-[#00e65c] text-black font-syne font-extrabold py-2 text-xs uppercase flex items-center justify-center gap-1.5 hover:bg-[#00ff66]"
                     >
                       <ShoppingBag size={14} />
-                      ADD TO BAG
+                      ADD TO CART
+                    </button>
+                    <button
+                      onClick={() => setQuickViewProduct(activeHotspotProduct)}
+                      className="bg-neutral-800 text-white p-2 hover:bg-neutral-700"
+                      title="Quick View"
+                    >
+                      <Eye size={16} />
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <p className="text-xs font-mono text-neutral-400">
-                    Articles in this shoot:
-                  </p>
-                  {currentLook.hotspots.map((hs) => {
-                    const p = MOCK_PRODUCTS.find((item) => item.id === hs.productId);
-                    if (!p) return null;
-                    return (
-                      <div
-                        key={hs.id}
-                        onClick={() => setActiveHotspotProduct(p)}
-                        className="p-3 bg-neutral-900 border border-neutral-800 hover:border-[#00e65c] cursor-pointer flex items-center justify-between transition-colors group"
-                      >
-                        <div>
-                          <p className="font-syne font-bold text-xs text-white uppercase group-hover:text-[#00e65c]">
-                            {p.name}
-                          </p>
-                          <span className="text-xs font-mono text-neutral-400">
-                            ${p.price.toFixed(2)}
-                          </span>
-                        </div>
-                        <Plus size={16} className="text-[#00e65c]" />
-                      </div>
-                    );
-                  })}
+                <div className="p-8 border border-dashed border-neutral-800 text-center text-neutral-500 font-mono text-xs">
+                  Select any green (+) pin on the lookbook photo to inspect and buy tagged streetwear apparel.
                 </div>
               )}
             </div>
 
-            <p className="text-[11px] font-mono text-neutral-500 mt-6 pt-4 border-t border-neutral-800">
-              Photographed in Berlin & Tokyo. All garments available for immediate dispatch.
-            </p>
+            <div className="mt-8 pt-6 border-t border-neutral-900">
+              <p className="text-xs font-mono text-neutral-400">
+                {currentLook.subtitle}
+              </p>
+            </div>
           </div>
         </div>
       </div>

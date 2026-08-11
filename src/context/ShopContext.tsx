@@ -8,6 +8,8 @@ import {
   FirestoreCategory,
   FirestoreCollection,
   UserProfile,
+  HomepageCMSContent,
+  DEFAULT_HOMEPAGE_CMS,
   mapFirestoreProductToProduct
 } from '../types';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
@@ -25,7 +27,9 @@ import {
   getUserCart,
   saveUserWishlist,
   getUserWishlist,
-  GetProductsQueryOptions
+  GetProductsQueryOptions,
+  getHomepageCMSContentFromFirestore,
+  saveHomepageCMSContentToFirestore
 } from '../services/firebaseService';
 import { isFirebaseConfigured, firebaseInitError } from '../lib/firebase';
 
@@ -137,11 +141,37 @@ interface ShopContextType {
   // Toast
   toastMessage: string | null;
   showToast: (message: string) => void;
+
+  // Homepage CMS Content
+  cmsContent: HomepageCMSContent;
+  refreshCMSContent: () => Promise<void>;
+  saveCMSContent: (newContent: HomepageCMSContent) => Promise<boolean>;
 }
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // CMS state
+  const [cmsContent, setCmsContent] = useState<HomepageCMSContent>(DEFAULT_HOMEPAGE_CMS);
+
+  const refreshCMSContent = async () => {
+    try {
+      const data = await getHomepageCMSContentFromFirestore();
+      if (data) setCmsContent(data);
+    } catch (e) {
+      console.warn('Error fetching homepage CMS content:', e);
+    }
+  };
+
+  const saveCMSContent = async (newContent: HomepageCMSContent): Promise<boolean> => {
+    setCmsContent(newContent);
+    return await saveHomepageCMSContentToFirestore(newContent);
+  };
+
+  useEffect(() => {
+    refreshCMSContent();
+  }, []);
+
   // Products state
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [categories, setCategories] = useState<FirestoreCategory[]>([]);
@@ -801,6 +831,10 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         toastMessage,
         showToast,
+
+        cmsContent,
+        refreshCMSContent,
+        saveCMSContent,
       }}
     >
       {children}

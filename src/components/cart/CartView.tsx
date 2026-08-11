@@ -19,7 +19,7 @@ import {
 import { useShop } from '../../context/ShopContext';
 import { ProductCard } from '../ui/ProductCard';
 import { getProductById } from '../../services/firebaseService';
-import { Product } from '../../types';
+import { Product, formatPrice } from '../../types';
 
 interface VerificationNotice {
   cartItemId: string;
@@ -53,8 +53,8 @@ export const CartView: React.FC = () => {
   const [verificationNotices, setVerificationNotices] = useState<VerificationNotice[]>([]);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  // Free shipping threshold logic ($75.00)
-  const FREE_SHIPPING_THRESHOLD = 75;
+  // Free shipping threshold logic (Rs. 3,500)
+  const FREE_SHIPPING_THRESHOLD = 3500;
   const remainingForFree = Math.max(0, FREE_SHIPPING_THRESHOLD - cartTotal);
   const freeShippingProgress = Math.min(100, (cartTotal / FREE_SHIPPING_THRESHOLD) * 100);
 
@@ -63,8 +63,8 @@ export const CartView: React.FC = () => {
     cartTotal >= FREE_SHIPPING_THRESHOLD
       ? 0
       : shippingMethod === 'express'
-      ? 18.0
-      : 9.95;
+      ? 500
+      : 250;
 
   // Discount calculation
   const discountAmount = cartTotal * discountPercent;
@@ -144,7 +144,7 @@ export const CartView: React.FC = () => {
           notices.push({
             cartItemId: item.id,
             type: 'price_changed',
-            message: `Price updated for "${item.product.name}": was $${item.product.price.toFixed(2)}, live price is $${livePrice.toFixed(2)}.`,
+            message: `Price updated for "${item.product.name}": was ${formatPrice(item.product.price)}, live price is ${formatPrice(livePrice)}.`,
             actualPrice: livePrice,
           });
         }
@@ -215,7 +215,7 @@ export const CartView: React.FC = () => {
               <Truck size={16} className="text-[#00e65c]" />
               <span className="font-bold">
                 {remainingForFree > 0
-                  ? `ADD $${remainingForFree.toFixed(2)} MORE TO UNLOCK FREE EXPRESS SHIPPING`
+                  ? `ADD ${formatPrice(remainingForFree)} MORE TO UNLOCK FREE EXPRESS SHIPPING`
                   : '🎉 YOU HAVE UNLOCKED FREE EXPRESS SHIPPING!'}
               </span>
             </div>
@@ -420,10 +420,10 @@ export const CartView: React.FC = () => {
                         <div className="text-right">
                           <span className="text-[10px] font-mono text-neutral-500 uppercase block">SUBTOTAL</span>
                           <span className="font-syne font-extrabold text-base sm:text-lg text-[#00e65c]">
-                            ${(item.product.price * item.quantity).toFixed(2)}
+                            {formatPrice(item.product.price * item.quantity)}
                           </span>
                           <span className="block text-[10px] font-mono text-neutral-500">
-                            ${item.product.price.toFixed(2)} each
+                            {formatPrice(item.product.price)} each
                           </span>
                         </div>
 
@@ -542,7 +542,7 @@ export const CartView: React.FC = () => {
                       </div>
                     </div>
                     <span className="font-mono text-xs font-bold text-[#00e65c]">
-                      {cartTotal >= FREE_SHIPPING_THRESHOLD ? 'FREE' : '$9.95'}
+                      {cartTotal >= FREE_SHIPPING_THRESHOLD ? 'FREE' : 'Rs. 250'}
                     </span>
                   </label>
 
@@ -563,12 +563,12 @@ export const CartView: React.FC = () => {
                         className="accent-[#00e65c]"
                       />
                       <div>
-                        <span className="font-syne font-bold text-xs uppercase block">OVERNIGHT DHL AIR</span>
+                        <span className="font-syne font-bold text-xs uppercase block">OVERNIGHT EXPRESS AIR</span>
                         <span className="text-[10px] font-mono text-neutral-500">1-2 Business Days</span>
                       </div>
                     </div>
                     <span className="font-mono text-xs font-bold text-[#00e65c]">
-                      {cartTotal >= FREE_SHIPPING_THRESHOLD ? 'FREE' : '$18.00'}
+                      {cartTotal >= FREE_SHIPPING_THRESHOLD ? 'FREE' : 'Rs. 500'}
                     </span>
                   </label>
                 </div>
@@ -578,20 +578,20 @@ export const CartView: React.FC = () => {
               <div className="space-y-2.5 text-xs font-mono text-neutral-400">
                 <div className="flex justify-between">
                   <span>Subtotal ({cartCount} items)</span>
-                  <span className="text-white">${cartTotal.toFixed(2)}</span>
+                  <span className="text-white">{formatPrice(cartTotal)}</span>
                 </div>
 
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-[#00e65c]">
                     <span>Discount ({discountPercent * 100}%)</span>
-                    <span>-${discountAmount.toFixed(2)}</span>
+                    <span>-{formatPrice(discountAmount)}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between">
                   <span>Estimated Shipping</span>
                   <span className="text-[#00e65c]">
-                    {calculatedShippingCost === 0 ? 'FREE' : `$${calculatedShippingCost.toFixed(2)}`}
+                    {calculatedShippingCost === 0 ? 'FREE' : formatPrice(calculatedShippingCost)}
                   </span>
                 </div>
 
@@ -599,7 +599,7 @@ export const CartView: React.FC = () => {
                   <span className="font-syne font-extrabold text-sm text-white">GRAND TOTAL</span>
                   <div className="text-right">
                     <span className="font-syne font-extrabold text-2xl text-[#00e65c]">
-                      ${grandTotal.toFixed(2)}
+                      {formatPrice(grandTotal)}
                     </span>
                     <span className="block text-[10px] text-neutral-500 font-mono">Taxes included</span>
                   </div>

@@ -1,38 +1,50 @@
 import React from 'react';
 import { Instagram, Heart, MessageCircle, ExternalLink } from 'lucide-react';
-
-const INSTAGRAM_POSTS = [
-  {
-    id: 'ig-1',
-    image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop',
-    likes: '2.4k',
-    comments: 184,
-    tag: 'Graffiti Tee',
-  },
-  {
-    id: 'ig-2',
-    image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?q=80&w=800&auto=format&fit=crop',
-    likes: '3.1k',
-    comments: 242,
-    tag: 'P-Store Trucker',
-  },
-  {
-    id: 'ig-3',
-    image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=800&auto=format&fit=crop',
-    likes: '4.8k',
-    comments: 310,
-    tag: 'Baggy Denim',
-  },
-  {
-    id: 'ig-4',
-    image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=800&auto=format&fit=crop',
-    likes: '1.9k',
-    comments: 145,
-    tag: 'Metropolis Hoodie',
-  },
-];
+import { useShop } from '../../context/ShopContext';
 
 export const InstagramSection: React.FC = () => {
+  const { cmsContent } = useShop();
+  const cms = cmsContent?.instagramSection;
+
+  if (cms?.enabled === false) return null;
+
+  const handle = cms?.handle || '@premiumstore._pk';
+  const title = cms?.title || 'STREETWEAR COMMUNITY';
+  const hashtag = cms?.hashtag || '#WEARTHEBESTFORLESS';
+
+  const posts = cms?.posts && cms.posts.length > 0
+    ? cms.posts
+    : [
+        {
+          id: 'ig-1',
+          image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop',
+          likes: '2.4k',
+          comments: 184,
+          tag: 'Graffiti Tee',
+        },
+        {
+          id: 'ig-2',
+          image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?q=80&w=800&auto=format&fit=crop',
+          likes: '3.1k',
+          comments: 242,
+          tag: 'P-Store Trucker',
+        },
+        {
+          id: 'ig-3',
+          image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=800&auto=format&fit=crop',
+          likes: '4.8k',
+          comments: 310,
+          tag: 'Baggy Denim',
+        },
+        {
+          id: 'ig-4',
+          image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=800&auto=format&fit=crop',
+          likes: '1.9k',
+          comments: 145,
+          tag: 'Metropolis Hoodie',
+        },
+      ];
+
   return (
     <section className="py-16 sm:py-24 bg-black text-white border-b border-neutral-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -40,22 +52,22 @@ export const InstagramSection: React.FC = () => {
         <div className="text-center max-w-xl mx-auto mb-12">
           <div className="inline-flex items-center gap-2 text-xs font-mono text-[#00e65c] uppercase tracking-widest mb-2">
             <Instagram size={16} />
-            @PREMIUMSTORE_OFFICIAL
+            <span>{handle}</span>
           </div>
           <h2 className="font-syne font-extrabold text-3xl sm:text-5xl uppercase tracking-tight text-white mb-2">
-            STREETWEAR <span className="text-[#00e65c]">COMMUNITY</span>
+            {title}
           </h2>
           <p className="text-xs font-mono text-neutral-400">
-            Tag us in your fits <span className="text-white font-bold">#PREMIUMSTORE</span> to be featured on our official grid.
+            Tag us in your fits <span className="text-white font-bold">{hashtag}</span> to be featured on our official grid.
           </p>
         </div>
 
         {/* INSTAGRAM GRID */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {INSTAGRAM_POSTS.map((post) => (
+          {posts.map((post) => (
             <a
               key={post.id}
-              href="https://instagram.com"
+              href={post.linkUrl || 'https://www.instagram.com/premiumstore._pk/'}
               target="_blank"
               rel="noreferrer"
               className="group relative aspect-square bg-neutral-900 overflow-hidden border border-neutral-800"

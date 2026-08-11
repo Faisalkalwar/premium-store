@@ -4,9 +4,17 @@ import { Award, ArrowRight } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 
 export const BestSellersSection: React.FC = () => {
-  const { products, setSelectedCategory } = useShop();
+  const { products, setSelectedCategory, cmsContent } = useShop();
+  const cms = cmsContent?.bestSellers;
 
-  const bestSellers = products.filter((p) => p.isBestSeller || p.category === 'best-sellers').slice(0, 4);
+  if (cms?.enabled === false) return null;
+
+  const count = cms?.displayCount || 4;
+  const tagline = cms?.tagline || 'MOST WANTED GRAILS';
+  const title = cms?.title || 'BEST SELLERS';
+  const buttonText = cms?.buttonText || 'EXPLORE ALL BESTSELLERS';
+
+  const bestSellers = products.filter((p) => p.isBestSeller || p.category === 'best-sellers').slice(0, count);
 
   const handleViewAll = () => {
     setSelectedCategory('best-sellers');
@@ -22,10 +30,10 @@ export const BestSellersSection: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 text-xs font-mono text-[#00e65c] uppercase tracking-widest mb-2">
               <Award size={14} />
-              MOST WANTED GRAILS
+              <span>{tagline}</span>
             </div>
             <h2 className="font-syne font-extrabold text-3xl sm:text-5xl uppercase tracking-tight text-white">
-              BEST <span className="text-[#00e65c]">SELLERS</span>
+              {title}
             </h2>
           </div>
 
@@ -33,7 +41,7 @@ export const BestSellersSection: React.FC = () => {
             onClick={handleViewAll}
             className="inline-flex items-center gap-2 font-syne font-extrabold text-xs text-[#00e65c] hover:text-white uppercase tracking-wider underline underline-offset-4 transition-colors"
           >
-            EXPLORE ALL BESTSELLERS
+            <span>{buttonText}</span>
             <ArrowRight size={14} />
           </button>
         </div>
@@ -48,4 +56,3 @@ export const BestSellersSection: React.FC = () => {
     </section>
   );
 };
-

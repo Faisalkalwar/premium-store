@@ -3,23 +3,24 @@ import React from 'react';
 interface LogoProps {
   className?: string;
   lightMode?: boolean;
+  heightClass?: string;
 }
 
-export const Logo: React.FC<LogoProps> = ({ className = '', lightMode = false }) => {
+export const Logo: React.FC<LogoProps> = ({ className = '', heightClass = 'h-10 sm:h-12' }) => {
   return (
-    <div className={`inline-flex items-center gap-1.5 select-none ${className}`}>
-      {/* Green graffiti style 'PREMIUM' */}
-      <span className="font-graffiti text-2xl sm:text-3xl text-[#00e65c] tracking-wider transform -rotate-2 drop-shadow-[0_2px_10px_rgba(0,230,92,0.3)]">
-        PREMIUM
-      </span>
-      {/* Bold 'STORE' */}
-      <span
-        className={`font-syne font-extrabold text-xl sm:text-2xl tracking-tighter uppercase ${
-          lightMode ? 'text-black' : 'text-white'
-        }`}
-      >
-        STORE
-      </span>
+    <div className={`inline-flex items-center select-none ${className}`}>
+      <img
+        src="/images/premium-store-logo.png"
+        alt="PREMIUM STORE - WEAR THE BEST. FOR LESS."
+        className={`${heightClass} w-auto object-contain transition-transform duration-300 hover:scale-105 shrink-0`}
+        onError={(e) => {
+          // Fallback if path differs
+          (e.currentTarget as HTMLImageElement).src = '/logo.png';
+        }}
+      />
     </div>
   );
 };
+
+
+

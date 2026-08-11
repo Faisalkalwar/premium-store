@@ -11,8 +11,8 @@ export const AdminSettingsView: React.FC = () => {
   const [storeName, setStoreName] = useState('PREMIUM STORE');
   const [currencySymbol, setCurrencySymbol] = useState('$');
   const [codEnabled, setCodEnabled] = useState(true);
-  const [supportEmail, setSupportEmail] = useState('support@premiumstore.com');
-  const [supportPhone, setSupportPhone] = useState('+1 (800) 555-0199');
+  const [supportEmail, setSupportEmail] = useState('thepremiumstoree@gmail.com');
+  const [supportPhone, setSupportPhone] = useState('+92 323 7506649');
   const [shippingFeeDefault, setShippingFeeDefault] = useState(15);
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(150);
 

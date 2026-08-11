@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { getOrderByNumber } from '../../services/firebaseService';
-import { Order, OrderStatus } from '../../types';
+import { Order, OrderStatus, formatPrice } from '../../types';
 
 export const OrderDetailView: React.FC = () => {
   const { selectedOrderId, navigateToAccountOrders } = useShop();
@@ -241,8 +241,8 @@ export const OrderDetailView: React.FC = () => {
                     </p>
                   </div>
                   <div className="text-right font-mono text-xs">
-                    <p className="text-neutral-400 text-[10px]">{item.quantity} × ${item.price.toFixed(2)}</p>
-                    <p className="font-bold text-white mt-1">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="text-neutral-400 text-[10px]">{item.quantity} × {formatPrice(item.price)}</p>
+                    <p className="font-bold text-white mt-1">{formatPrice(item.price * item.quantity)}</p>
                   </div>
                 </div>
               ))}
@@ -252,23 +252,23 @@ export const OrderDetailView: React.FC = () => {
             <div className="space-y-2 text-xs font-mono text-neutral-400 pt-4 border-t border-neutral-800">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span className="text-white">${order.subtotal.toFixed(2)}</span>
+                <span className="text-white">{formatPrice(order.subtotal)}</span>
               </div>
               {order.discount > 0 && (
                 <div className="flex justify-between text-[#00e65c]">
                   <span>Discount</span>
-                  <span>-${order.discount.toFixed(2)}</span>
+                  <span>-{formatPrice(order.discount)}</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span>Shipping Fee</span>
                 <span className="text-white">
-                  {order.shippingFee === 0 ? 'FREE' : `$${order.shippingFee.toFixed(2)}`}
+                  {order.shippingFee === 0 ? 'FREE' : formatPrice(order.shippingFee)}
                 </span>
               </div>
               <div className="pt-3 border-t border-neutral-800 flex justify-between items-baseline font-bold text-white">
                 <span className="font-syne text-sm uppercase">TOTAL AMOUNT (COD)</span>
-                <span className="font-syne text-2xl text-[#00e65c]">${order.total.toFixed(2)}</span>
+                <span className="font-syne text-2xl text-[#00e65c]">{formatPrice(order.total)}</span>
               </div>
             </div>
           </div>

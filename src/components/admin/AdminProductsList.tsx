@@ -22,7 +22,7 @@ import {
   updateProductStatusInFirestore,
   updateInventoryStockInFirestore
 } from '../../services/firebaseService';
-import { Product, ProductCategory } from '../../types';
+import { Product, ProductCategory, formatPrice } from '../../types';
 
 export const AdminProductsList: React.FC = () => {
   const { navigateTo, navigateToAdminProductEdit, navigateToProduct, showToast } = useShop();
@@ -243,10 +243,10 @@ export const AdminProductsList: React.FC = () => {
 
                     {/* PRICE */}
                     <td className="py-3.5 px-4 font-bold text-white">
-                      ${p.price.toFixed(2)}
+                      {formatPrice(p.price)}
                       {p.originalPrice && (
                         <span className="block text-[10px] text-neutral-500 line-through">
-                          ${p.originalPrice.toFixed(2)}
+                          {formatPrice(p.originalPrice)}
                         </span>
                       )}
                     </td>

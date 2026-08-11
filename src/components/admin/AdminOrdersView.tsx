@@ -17,7 +17,7 @@ import {
 import { useShop } from '../../context/ShopContext';
 import { AdminLayout } from './AdminLayout';
 import { getAllOrdersAdmin, updateOrderStatusInFirestore } from '../../services/firebaseService';
-import { Order, OrderStatus } from '../../types';
+import { Order, OrderStatus, formatPrice } from '../../types';
 
 export const AdminOrdersView: React.FC = () => {
   const { showToast } = useShop();
@@ -205,7 +205,7 @@ export const AdminOrdersView: React.FC = () => {
 
                     {/* TOTAL */}
                     <td className="py-3.5 px-4 font-bold text-[#00e65c]">
-                      ${order.total.toFixed(2)}
+                      {formatPrice(order.total)}
                     </td>
 
                     {/* STATUS DROPDOWN */}
@@ -324,7 +324,7 @@ export const AdminOrdersView: React.FC = () => {
                       </div>
 
                       <div className="text-right font-bold text-white">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        {formatPrice(item.price * item.quantity)}
                       </div>
                     </div>
                   ))}
@@ -335,25 +335,25 @@ export const AdminOrdersView: React.FC = () => {
               <div className="bg-neutral-950 p-4 border border-neutral-800 font-mono text-xs space-y-2">
                 <div className="flex justify-between text-neutral-400">
                   <span>Subtotal</span>
-                  <span>${selectedOrder.subtotal.toFixed(2)}</span>
+                  <span>{formatPrice(selectedOrder.subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-neutral-400">
                   <span>Shipping Fee</span>
                   <span>
                     {selectedOrder.shippingFee === 0
                       ? 'FREE'
-                      : `$${selectedOrder.shippingFee.toFixed(2)}`}
+                      : formatPrice(selectedOrder.shippingFee)}
                   </span>
                 </div>
                 {selectedOrder.discount > 0 && (
                   <div className="flex justify-between text-[#00e65c]">
                     <span>Discount</span>
-                    <span>-${selectedOrder.discount.toFixed(2)}</span>
+                    <span>-{formatPrice(selectedOrder.discount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-white font-bold text-sm border-t border-neutral-800 pt-2">
                   <span>Total Amount</span>
-                  <span className="text-[#00e65c]">${selectedOrder.total.toFixed(2)}</span>
+                  <span className="text-[#00e65c]">{formatPrice(selectedOrder.total)}</span>
                 </div>
                 <p className="text-[10px] text-neutral-500 pt-1">
                   Payment Method: <span className="text-white font-bold">{selectedOrder.paymentMethod}</span> ({selectedOrder.paymentStatus})

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { getUserOrders } from '../../services/firebaseService';
-import { Order, OrderStatus } from '../../types';
+import { Order, OrderStatus, formatPrice } from '../../types';
 
 export const OrdersView: React.FC = () => {
   const { user, userProfile, navigateTo, navigateToOrderDetail } = useShop();
@@ -200,7 +200,7 @@ export const OrdersView: React.FC = () => {
                   <div className="text-left sm:text-right font-mono">
                     <span className="text-[10px] text-neutral-500 uppercase block">TOTAL AMOUNT</span>
                     <span className="font-syne font-extrabold text-lg text-[#00e65c]">
-                      ${ord.total.toFixed(2)}
+                      {formatPrice(ord.total)}
                     </span>
                   </div>
                 </div>

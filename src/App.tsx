@@ -4,6 +4,7 @@ import { AnnouncementBar } from './components/layout/AnnouncementBar';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import { HeroSection } from './components/home/HeroSection';
+import { PromotionalBanner } from './components/home/PromotionalBanner';
 import { CategorySection } from './components/home/CategorySection';
 import { NewArrivalsSection } from './components/home/NewArrivalsSection';
 import { ProductGridFilter } from './components/home/ProductGridFilter';
@@ -23,6 +24,8 @@ import { CheckoutView } from './components/checkout/CheckoutView';
 import { OrderSuccessView } from './components/checkout/OrderSuccessView';
 import { OrdersView } from './components/account/OrdersView';
 import { OrderDetailView } from './components/account/OrderDetailView';
+import { ContactView } from './components/contact/ContactView';
+import { WhatsAppFloatingButton } from './components/common/WhatsAppFloatingButton';
 
 // Admin Components
 import { AdminDashboardOverview } from './components/admin/AdminDashboardOverview';
@@ -43,6 +46,7 @@ import { QuickViewModal } from './components/ui/QuickViewModal';
 import { AccountModal } from './components/ui/AccountModal';
 import { FirebaseStatusWidget } from './components/ui/FirebaseStatusWidget';
 import { Toast } from './components/ui/Toast';
+import { SEO } from './components/common/SEO';
 
 const MainContent: React.FC = () => {
   const { currentView } = useShop();
@@ -137,9 +141,14 @@ const MainContent: React.FC = () => {
     return <OrderDetailView />;
   }
 
+  if (currentView === 'contact') {
+    return <ContactView />;
+  }
+
   return (
     <>
       <HeroSection />
+      <PromotionalBanner />
       <CategorySection />
       <NewArrivalsSection />
       <ProductGridFilter />
@@ -157,10 +166,50 @@ const AppInner: React.FC = () => {
 
   const isAdminView = currentView.startsWith('admin');
 
+  // Compute page SEO title based on active view
+  const getSeoTitle = () => {
+    switch (currentView) {
+      case 'home':
+        return 'Streetwear & Urban Fashion Catalog';
+      case 'cart':
+        return 'Shopping Cart';
+      case 'wishlist':
+        return 'Saved Wishlist';
+      case 'checkout':
+        return 'Checkout';
+      case 'login':
+        return 'Customer Sign In';
+      case 'register':
+        return 'Create Account';
+      case 'forgot-password':
+        return 'Reset Password';
+      case 'account':
+      case 'account-orders':
+      case 'account-order-detail':
+        return 'My Account & Orders';
+      case 'order-success':
+        return 'Order Confirmed';
+      case 'contact':
+        return 'Contact Us — Store Location & WhatsApp';
+      default:
+        if (isAdminView) return 'Store Administration Portal';
+        return undefined;
+    }
+  };
+
   if (isAdminView) {
     return (
       <div className="min-h-screen bg-neutral-950 text-white font-sans selection:bg-[#00e65c] selection:text-black">
-        <MainContent />
+        <SEO title="Admin Control Center" />
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-[#00e65c] focus:text-black focus:font-syne focus:font-extrabold focus:uppercase text-xs tracking-wider shadow-2xl"
+        >
+          Skip to main content
+        </a>
+        <main id="main-content">
+          <MainContent />
+        </main>
         <Toast />
       </div>
     );
@@ -168,9 +217,19 @@ const AppInner: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-[#00e65c] selection:text-black">
+      {currentView !== 'product' && <SEO title={getSeoTitle()} />}
+
+      {/* ACCESSIBILITY: SKIP TO MAIN CONTENT LINK */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-[#00e65c] focus:text-black focus:font-syne focus:font-extrabold focus:uppercase text-xs tracking-wider shadow-2xl"
+      >
+        Skip to main content
+      </a>
+
       <AnnouncementBar />
       <Header />
-      <main className="flex-1">
+      <main id="main-content" className="flex-1 focus:outline-none" tabIndex={-1}>
         <MainContent />
       </main>
       <Footer />
@@ -181,6 +240,7 @@ const AppInner: React.FC = () => {
       <QuickViewModal />
       <AccountModal />
       <FirebaseStatusWidget />
+      <WhatsAppFloatingButton />
       <Toast />
     </div>
   );

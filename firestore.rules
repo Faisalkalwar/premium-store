@@ -11,75 +11,89 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Products: Public read for everyone, write for authenticated or admin/dev seeding
+    // Helper function to check if user has admin role
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token != null && request.auth.token.admin == true) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    // Products: Public read for everyone, write restricted to authorized admins
     match /products/{productId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
     }
 
-    // Categories: Public read, write open for setup
+    // Categories: Public read for everyone, write restricted to authorized admins
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
     }
 
-    // Collections: Public read, write open for setup
+    // Collections: Public read for everyone, write restricted to authorized admins
     match /collections/{collectionId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
     }
 
-    // Users: Owner read/write, enforce default 'customer' role and prevent role escalation
+    // Users: Owner can read and update their own profile; admin can read/manage all
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAuthenticated();
+      allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && request.resource.data.role == 'customer';
-      allow update: if isOwner(userId) && (
+      allow update: if (isOwner(userId) && (
         !('role' in request.resource.data) ||
         request.resource.data.role == resource.data.role ||
         request.resource.data.role == 'customer'
-      );
-      allow delete: if false;
+      )) || isAdmin();
+      allow delete: if isAdmin();
     }
 
-    // Orders
+    // Orders: Anyone can create order; read restricted to order owner or admin
     match /orders/{orderId} {
-      // Allow creation for guests and authenticated users
       allow create: if true;
-      // Allow read if user owns the order or if guest order (userId is null or empty)
       allow read: if resource.data.userId == null || 
                   resource.data.userId == "" || 
-                  (isAuthenticated() && resource.data.userId == request.auth.uid);
-      // Allow updates for stock adjustments or order status by owner
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+                  (isAuthenticated() && resource.data.userId == request.auth.uid) ||
+                  isAdmin();
+      allow update: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow delete: if isAdmin();
     }
 
-    // Wishlists
+    // Wishlists: Owner or admin manage wishlist
     match /wishlists/{wishlistId} {
-      allow read, write: if true;
+      allow read, write: if isOwner(wishlistId) || isAdmin() || (resource != null && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated();
     }
 
-    // Carts
+    // Carts: Owner or guest manage cart
     match /carts/{cartId} {
-      allow read, write: if true;
+      allow read, write: if isOwner(cartId) || isAdmin() || (resource != null && resource.data.userId == request.auth.uid);
+      allow create: if true;
     }
 
-    // Coupons
+    // Coupons: Public read, admin write
     match /coupons/{couponId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
     }
 
-    // Reviews
+    // Reviews: Public read, authenticated user create/edit own review
     match /reviews/{reviewId} {
       allow read: if true;
-      allow create, update: if true;
-      allow delete: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
     }
 
-    // Site Settings
+    // Site Settings & CMS: Public read, admin write
     match /siteSettings/{settingId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
+    }
+    match /site_settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

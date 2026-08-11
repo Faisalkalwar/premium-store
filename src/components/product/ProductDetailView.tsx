@@ -24,10 +24,11 @@ import {
   Package,
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
-import { Product } from '../../types';
+import { Product, formatPrice } from '../../types';
 import { getProductBySlug } from '../../services/firebaseService';
 import { ProductCard } from '../ui/ProductCard';
 import { SizeGuideModal } from './SizeGuideModal';
+import { SEO } from '../common/SEO';
 
 export const ProductDetailView: React.FC = () => {
   const {
@@ -255,6 +256,24 @@ export const ProductDetailView: React.FC = () => {
 
   return (
     <div className="bg-black text-white min-h-screen pb-24">
+      {/* PRODUCT METADATA & STRUCTURED DATA */}
+      <SEO
+        title={product.name}
+        description={product.description}
+        image={galleryImages[0] || product.image}
+        type="product"
+        productData={{
+          name: product.name,
+          description: product.description,
+          image: galleryImages[0] || product.image,
+          price: product.price,
+          currency: 'USD',
+          sku: product.sku || product.id,
+          inStock: !isOutOfStock,
+          category: product.category,
+        }}
+      />
+
       {/* BREADCRUMBS */}
       <nav className="border-b border-neutral-800/80 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center gap-2 text-[11px] font-mono text-neutral-400 uppercase tracking-wider overflow-x-auto">
@@ -379,11 +398,11 @@ export const ProductDetailView: React.FC = () => {
             {/* PRICE & DISCOUNTS */}
             <div className="flex items-baseline gap-4">
               <span className="font-syne font-extrabold text-3xl sm:text-4xl text-[#00e65c]">
-                ${product.price.toFixed(2)}
+                {formatPrice(product.price)}
               </span>
               {product.originalPrice && (
                 <span className="font-mono text-lg text-neutral-500 line-through">
-                  ${product.originalPrice.toFixed(2)}
+                  {formatPrice(product.originalPrice)}
                 </span>
               )}
               {product.discountPercent && (
@@ -714,7 +733,7 @@ export const ProductDetailView: React.FC = () => {
             {activeTab === 'shipping' && (
               <p className="font-mono text-xs leading-relaxed text-neutral-300">
                 {product.shippingInfo ||
-                  'Standard dispatch within 24 hours. Free worldwide express shipping on orders over $150 via DHL Express.'}
+                  'Standard dispatch within 24 hours. Free express shipping on orders over Rs. 3,500.'}
               </p>
             )}
 

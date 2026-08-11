@@ -1,6 +1,6 @@
 import React from 'react';
 import { Logo } from './Logo';
-import { Instagram, Youtube, Twitter, ShieldCheck, Globe, ArrowUp } from 'lucide-react';
+import { Instagram, MessageSquare, Mail, MapPin, ShieldCheck, Globe, ArrowUp } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { ProductCategory } from '../../types';
 
@@ -27,40 +27,72 @@ export const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* TOP ROW: BRAND SUMMARY & QUICK NAVIGATION */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-16">
-          {/* BRAND INFO */}
+          {/* BRAND INFO & OFFICIAL CONTACTS */}
           <div className="lg:col-span-2 space-y-4">
             <Logo />
+            <p className="font-syne font-extrabold text-sm text-[#00e65c] uppercase tracking-wider">
+              "WEAR THE BEST. FOR LESS."
+            </p>
             <p className="text-xs font-mono text-neutral-400 max-w-sm leading-relaxed">
-              PREMIUM STORE is an independent youth-focused streetwear label delivering high-vibe apparel, graphic oversized tees, unstructured caps, and raw baggy denim. Wear the best for less.
+              PREMIUM STORE is your premier destination for modern streetwear, heavyweight apparel, unstructured caps, and raw baggy denim.
             </p>
 
-            <div className="flex items-center gap-3 pt-2">
+            {/* OFFICIAL STORE CONTACT DETAILS */}
+            <div className="space-y-2 pt-2 text-xs font-mono text-neutral-300">
+              <div className="flex items-start gap-2">
+                <MapPin size={15} className="text-[#00e65c] shrink-0 mt-0.5" />
+                <span>Unique Shopping Mall, Main Autobhan Road, Hyderabad, Sindh, Pakistan</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail size={15} className="text-[#00e65c] shrink-0" />
+                <a href="mailto:thepremiumstoree@gmail.com" className="hover:text-[#00e65c] transition-colors">
+                  thepremiumstoree@gmail.com
+                </a>
+              </div>
+              <div className="flex items-center gap-2">
+                <MessageSquare size={15} className="text-[#00e65c] shrink-0" />
+                <a
+                  href="https://wa.me/923237506649"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-[#00e65c] transition-colors font-bold text-[#00e65c]"
+                >
+                  +92 323 7506649 (WhatsApp)
+                </a>
+              </div>
+              <div className="flex items-center gap-2">
+                <Instagram size={15} className="text-[#00e65c] shrink-0" />
+                <a
+                  href="https://www.instagram.com/premiumstore._pk/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-[#00e65c] transition-colors"
+                >
+                  @premiumstore._pk
+                </a>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-3">
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/premiumstore._pk/"
                 target="_blank"
                 rel="noreferrer"
-                className="w-9 h-9 border border-neutral-800 flex items-center justify-center text-neutral-400 hover:text-[#00e65c] hover:border-[#00e65c] transition-colors"
-                aria-label="Instagram"
+                className="px-3 py-1.5 border border-neutral-800 bg-neutral-900 text-xs font-mono flex items-center gap-2 text-neutral-300 hover:text-[#00e65c] hover:border-[#00e65c] transition-colors"
+                aria-label="Instagram @premiumstore._pk"
               >
-                <Instagram size={18} />
+                <Instagram size={16} />
+                <span>@premiumstore._pk</span>
               </a>
               <a
-                href="https://youtube.com"
+                href="https://wa.me/923237506649"
                 target="_blank"
                 rel="noreferrer"
-                className="w-9 h-9 border border-neutral-800 flex items-center justify-center text-neutral-400 hover:text-[#00e65c] hover:border-[#00e65c] transition-colors"
-                aria-label="YouTube"
+                className="px-3 py-1.5 border border-[#00e65c]/40 bg-[#00e65c]/10 text-xs font-mono flex items-center gap-2 text-[#00e65c] hover:bg-[#00e65c] hover:text-black transition-colors"
+                aria-label="WhatsApp +92 323 7506649"
               >
-                <Youtube size={18} />
-              </a>
-              <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noreferrer"
-                className="w-9 h-9 border border-neutral-800 flex items-center justify-center text-neutral-400 hover:text-[#00e65c] hover:border-[#00e65c] transition-colors"
-                aria-label="Twitter"
-              >
-                <Twitter size={18} />
+                <MessageSquare size={16} />
+                <span>WhatsApp</span>
               </a>
             </div>
           </div>
@@ -111,6 +143,11 @@ export const Footer: React.FC = () => {
             </p>
             <ul className="space-y-2 text-xs font-mono text-neutral-400">
               <li>
+                <button onClick={() => navigateTo('contact')} className="text-[#00e65c] font-bold hover:underline transition-colors">
+                  Contact Us
+                </button>
+              </li>
+              <li>
                 <button onClick={() => navigateTo('account')} className="hover:text-white transition-colors">
                   VIP Account & Profile
                 </button>
@@ -121,7 +158,7 @@ export const Footer: React.FC = () => {
                 </button>
               </li>
               <li>
-                <button onClick={() => navigateTo('account')} className="hover:text-white transition-colors">
+                <button onClick={() => navigateTo('account-orders')} className="hover:text-white transition-colors">
                   Track Your Orders
                 </button>
               </li>
@@ -134,53 +171,28 @@ export const Footer: React.FC = () => {
                   <span>Admin Portal</span>
                 </button>
               </li>
-              <li>
-                <a href="#shipping" className="hover:text-white transition-colors">
-                  Worldwide Shipping Info
-                </a>
-              </li>
-              <li>
-                <a href="#returns" className="hover:text-white transition-colors">
-                  30-Day Easy Returns
-                </a>
-              </li>
-              <li>
-                <a href="#faq" className="hover:text-white transition-colors">
-                  Help Center & FAQ
-                </a>
-              </li>
             </ul>
           </div>
 
-          {/* COLUMN 3: ABOUT */}
+          {/* COLUMN 3: BRAND LOCATION */}
           <div className="space-y-3">
             <p className="font-syne font-extrabold text-xs uppercase tracking-wider text-[#00e65c]">
               THE BRAND
             </p>
             <ul className="space-y-2 text-xs font-mono text-neutral-400">
               <li>
-                <a href="#about" className="hover:text-white transition-colors">
-                  Our Story & Philosophy
+                <button onClick={() => navigateTo('contact')} className="hover:text-white transition-colors">
+                  Store Location
+                </button>
+              </li>
+              <li>
+                <a href="https://wa.me/923237506649" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
+                  Order Assistance
                 </a>
               </li>
               <li>
-                <a href="#fabric" className="hover:text-white transition-colors">
-                  Fabrics & Craftsmanship
-                </a>
-              </li>
-              <li>
-                <a href="#stores" className="hover:text-white transition-colors">
-                  Flagship Store Locations
-                </a>
-              </li>
-              <li>
-                <a href="#sustainability" className="hover:text-white transition-colors">
-                  Organic Cotton Sourcing
-                </a>
-              </li>
-              <li>
-                <a href="#careers" className="hover:text-white transition-colors">
-                  Join the Crew / Careers
+                <a href="https://www.instagram.com/premiumstore._pk/" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
+                  Instagram Community
                 </a>
               </li>
             </ul>
@@ -192,27 +204,15 @@ export const Footer: React.FC = () => {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 text-neutral-400">
               <Globe size={14} className="text-[#00e65c]" />
-              <span>UNITED STATES (USD $)</span>
+              <span>HYDERABAD, PAKISTAN</span>
             </div>
-            <span>© 2026 PREMIUM STORE INC. ALL RIGHTS RESERVED.</span>
+            <span>© 2026 PREMIUM STORE. ALL RIGHTS RESERVED.</span>
           </div>
 
           {/* PAYMENT BADGES */}
           <div className="flex items-center gap-3">
-            <span className="px-2 py-1 bg-neutral-900 border border-neutral-800 text-[10px] font-bold text-neutral-400">
-              VISA
-            </span>
-            <span className="px-2 py-1 bg-neutral-900 border border-neutral-800 text-[10px] font-bold text-neutral-400">
-              MASTERCARD
-            </span>
-            <span className="px-2 py-1 bg-neutral-900 border border-neutral-800 text-[10px] font-bold text-neutral-400">
-              AMEX
-            </span>
-            <span className="px-2 py-1 bg-neutral-900 border border-neutral-800 text-[10px] font-bold text-[#00e65c]">
-              APPLE PAY
-            </span>
-            <span className="px-2 py-1 bg-neutral-900 border border-neutral-800 text-[10px] font-bold text-neutral-400">
-              KLARNA
+            <span className="px-2 py-1 bg-[#00e65c]/10 border border-[#00e65c]/40 text-[10px] font-bold text-[#00e65c]">
+              CASH ON DELIVERY (COD)
             </span>
           </div>
 
@@ -230,3 +230,4 @@ export const Footer: React.FC = () => {
     </footer>
   );
 };
+

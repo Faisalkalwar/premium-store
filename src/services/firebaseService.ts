@@ -44,6 +44,8 @@ import {
   OrderStatus,
   PaymentStatus,
   OrderInternalNote,
+  HomepageCMSContent,
+  DEFAULT_HOMEPAGE_CMS,
   mapFirestoreProductToProduct
 } from '../types';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
@@ -1673,11 +1675,11 @@ export async function getSiteSettings() {
 
   return {
     storeName: 'PREMIUM STORE',
-    announcementText: 'FREE EXPRESS SHIPPING ON ORDERS OVER $75 • USE CODE "PREMIUM15" FOR 15% OFF',
-    currency: 'USD ($)',
+    announcementText: 'FREE EXPRESS SHIPPING ON ORDERS OVER Rs. 3,500 • USE CODE "PREMIUM15" FOR 15% OFF',
+    currency: 'PKR (Rs.)',
     enableCOD: true,
-    supportEmail: 'support@premiumstore.com',
-    supportPhone: '+1 (800) 555-STREET',
+    supportEmail: 'thepremiumstoree@gmail.com',
+    supportPhone: '+92 323 7506649',
     heroHeadline: 'STREETWEAR CULT GRAILS',
     heroSubheadline: 'SPRING / SUMMER 2026 LIMITED DROP',
   };
@@ -1694,5 +1696,92 @@ export async function saveSiteSettings(settings: any) {
   } catch (e) {}
   return true;
 }
+
+// ------------------------------------
+// HOMEPAGE CMS FIRESTORE & STORAGE
+// ------------------------------------
+
+export async function getHomepageCMSContentFromFirestore(): Promise<HomepageCMSContent> {
+  if (isFirebaseConfigured && db) {
+    try {
+      const snap = await getDoc(doc(db, 'site_settings', 'homepage_cms'));
+      if (snap.exists()) {
+        const data = snap.data() as Partial<HomepageCMSContent>;
+        // Deep merge with DEFAULT_HOMEPAGE_CMS to ensure all fields are defined
+        return {
+          ...DEFAULT_HOMEPAGE_CMS,
+          ...data,
+          announcementBar: { ...DEFAULT_HOMEPAGE_CMS.announcementBar, ...(data.announcementBar || {}) },
+          heroBanner: { ...DEFAULT_HOMEPAGE_CMS.heroBanner, ...(data.heroBanner || {}) },
+          featuredCategories: { ...DEFAULT_HOMEPAGE_CMS.featuredCategories, ...(data.featuredCategories || {}) },
+          newArrivals: { ...DEFAULT_HOMEPAGE_CMS.newArrivals, ...(data.newArrivals || {}) },
+          bestSellers: { ...DEFAULT_HOMEPAGE_CMS.bestSellers, ...(data.bestSellers || {}) },
+          featuredCollection: { ...DEFAULT_HOMEPAGE_CMS.featuredCollection, ...(data.featuredCollection || {}) },
+          promotionalBanner: { ...DEFAULT_HOMEPAGE_CMS.promotionalBanner, ...(data.promotionalBanner || {}) },
+          lookbook: { ...DEFAULT_HOMEPAGE_CMS.lookbook, ...(data.lookbook || {}) },
+          instagramSection: { ...DEFAULT_HOMEPAGE_CMS.instagramSection, ...(data.instagramSection || {}) },
+          newsletterSection: { ...DEFAULT_HOMEPAGE_CMS.newsletterSection, ...(data.newsletterSection || {}) },
+        };
+      }
+    } catch (e) {
+      console.warn('Error fetching homepage CMS from Firestore:', e);
+    }
+  }
+
+  try {
+    const local = localStorage.getItem('premium_store_homepage_cms');
+    if (local) {
+      const parsed = JSON.parse(local);
+      return {
+        ...DEFAULT_HOMEPAGE_CMS,
+        ...parsed,
+      };
+    }
+  } catch (e) {}
+
+  return DEFAULT_HOMEPAGE_CMS;
+}
+
+export async function saveHomepageCMSContentToFirestore(cmsContent: HomepageCMSContent): Promise<boolean> {
+  if (isFirebaseConfigured && db) {
+    try {
+      await setDoc(doc(db, 'site_settings', 'homepage_cms'), cmsContent, { merge: true });
+    } catch (err) {
+      console.error('Error saving homepage CMS content to Firestore:', err);
+    }
+  }
+
+  try {
+    localStorage.setItem('premium_store_homepage_cms', JSON.stringify(cmsContent));
+  } catch (e) {}
+
+  return true;
+}
+
+export async function uploadCMSImageToFirebaseStorage(
+  file: File,
+  folderName: string = 'cms_assets'
+): Promise<string> {
+  if (isFirebaseConfigured && storage) {
+    try {
+      const fileName = `${folderName}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const storageRef = ref(storage, fileName);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(snapshot.ref);
+      return downloadUrl;
+    } catch (err) {
+      console.warn('Firebase Storage upload failed, converting to local Data URL fallback:', err);
+    }
+  }
+
+  // Fallback: convert file to Base64 Data URL so local session/offline admin works smoothly
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+    reader.readAsDataURL(file);
+  });
+}
+
 
 

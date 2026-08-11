@@ -24,7 +24,7 @@ export const SearchModal: React.FC = () => {
   if (!isSearchOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md animate-fadeIn flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md animate-fadeIn flex flex-col" role="dialog" aria-modal="true" aria-label="Search Catalog Modal">
       {/* HEADER BAR */}
       <div className="p-4 sm:p-6 border-b border-neutral-800 max-w-7xl mx-auto w-full flex items-center justify-between gap-4">
         {/* Search Input Box */}

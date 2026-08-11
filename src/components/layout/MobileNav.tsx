@@ -9,13 +9,14 @@ interface MobileNavProps {
   onClose: () => void;
 }
 
-const NAV_LINKS: { name: string; category: ProductCategory | 'lookbook' }[] = [
+const NAV_LINKS: { name: string; category: ProductCategory | 'lookbook' | 'contact' }[] = [
   { name: 'Shirts', category: 'shirts' },
   { name: 'Caps & Hats', category: 'caps' },
   { name: 'Jeans & Denim', category: 'jeans' },
   { name: 'New Arrivals', category: 'new-arrivals' },
   { name: 'Best Sellers', category: 'best-sellers' },
   { name: 'Editorial Lookbook', category: 'lookbook' },
+  { name: 'Contact Us', category: 'contact' },
 ];
 
 export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
@@ -32,14 +33,22 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const handleCategoryClick = (category: ProductCategory | 'lookbook') => {
-    if (category === 'lookbook') {
-      const el = document.getElementById('lookbook-section');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+  const handleCategoryClick = (category: ProductCategory | 'lookbook' | 'contact') => {
+    if (category === 'contact') {
+      navigateTo('contact');
+    } else if (category === 'lookbook') {
+      navigateTo('home');
+      setTimeout(() => {
+        const el = document.getElementById('lookbook-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
     } else {
       setSelectedCategory(category);
-      const el = document.getElementById('products-section');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      navigateTo('home');
+      setTimeout(() => {
+        const el = document.getElementById('products-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
     }
     onClose();
   };
@@ -158,10 +167,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
               <span>GLOBAL SHIPPING</span>
             </div>
             <a
-              href="https://instagram.com"
+              href="https://www.instagram.com/premiumstore._pk/"
               target="_blank"
               rel="noreferrer"
-              className="text-neutral-400 hover:text-[#00e65c]"
+              className="text-neutral-400 hover:text-[#00e65c] transition-colors"
+              aria-label="Instagram @premiumstore._pk"
             >
               <Instagram size={16} />
             </a>

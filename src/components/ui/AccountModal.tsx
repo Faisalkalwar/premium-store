@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Lock, Mail, ArrowRight, Shield, Crown, LogOut, CheckCircle2 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
+import { Logo } from '../layout/Logo';
 
 export const AccountModal: React.FC = () => {
   const {
@@ -35,7 +36,7 @@ export const AccountModal: React.FC = () => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
       <div className="absolute inset-0" onClick={() => setIsAccountModalOpen(false)} />
 
-      <div className="relative w-full max-w-md bg-[#0d0d0d] border border-neutral-800 p-6 sm:p-8 z-10 shadow-2xl">
+      <div className="relative w-full max-w-md bg-[#0d0d0d] border border-neutral-800 p-6 sm:p-8 z-10 shadow-2xl" role="dialog" aria-modal="true" aria-label="Account Authentication Modal">
         <button
           onClick={() => setIsAccountModalOpen(false)}
           className="absolute top-4 right-4 text-neutral-400 hover:text-white p-1"
@@ -46,13 +47,8 @@ export const AccountModal: React.FC = () => {
 
         {/* LOGO & CLUB BADGE */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-1.5 justify-center mb-2">
-            <span className="font-graffiti text-2xl text-[#00e65c] transform -rotate-2">
-              PREMIUM
-            </span>
-            <span className="font-syne font-extrabold text-xl text-white uppercase">
-              STORE
-            </span>
+          <div className="flex justify-center mb-2">
+            <Logo heightClass="h-9 sm:h-10" />
           </div>
           <p className="text-xs font-mono text-neutral-400 uppercase tracking-widest flex items-center justify-center gap-1">
             <Crown size={12} className="text-[#00e65c]" />
