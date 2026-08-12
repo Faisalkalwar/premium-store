@@ -128,7 +128,7 @@ export const SEO: React.FC<SEOProps> = ({
         url: currentUrl,
         logo: image,
         sameAs: [
-          'https://instagram.com/premiumstore_official',
+          'https://www.instagram.com/premiumstore._pk/',
           'https://twitter.com/premiumstore',
         ],
       };
