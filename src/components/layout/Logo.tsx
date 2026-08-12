@@ -6,15 +6,14 @@ interface LogoProps {
   heightClass?: string;
 }
 
-export const Logo: React.FC<LogoProps> = ({ className = '', heightClass = 'h-10 sm:h-12' }) => {
+export const Logo: React.FC<LogoProps> = ({ className = '', heightClass = 'h-8 sm:h-10 lg:h-11' }) => {
   return (
     <div className={`inline-flex items-center select-none ${className}`}>
       <img
         src="/images/premium-store-logo.png"
-        alt="PREMIUM STORE - WEAR THE BEST. FOR LESS."
-        className={`${heightClass} w-auto object-contain transition-transform duration-300 hover:scale-105 shrink-0`}
+        alt="PREMIUM STORE"
+        className={`${heightClass} w-auto max-w-[240px] sm:max-w-[280px] object-contain transition-transform duration-300 hover:scale-105 shrink-0`}
         onError={(e) => {
-          // Fallback if path differs
           (e.currentTarget as HTMLImageElement).src = '/logo.png';
         }}
       />

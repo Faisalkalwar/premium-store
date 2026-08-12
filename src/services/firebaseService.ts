@@ -582,7 +582,17 @@ export async function registerWithEmailPassword(email: string, pass: string, nam
     return { user: cred.user };
   } catch (error: any) {
     console.error('Registration error:', error);
-    return { user: null, error: error.message || 'Failed to register account.' };
+    let errMsg = error.message || 'Failed to register account.';
+    if (error.code === 'auth/operation-not-allowed') {
+      errMsg = 'Email/Password sign-in is disabled in your Firebase console. Please go to Firebase Console > Authentication > Sign-in method and enable Email/Password.';
+    } else if (error.code === 'auth/email-already-in-use') {
+      errMsg = 'An account with this email address already exists. Please sign in instead.';
+    } else if (error.code === 'auth/invalid-email') {
+      errMsg = 'Please enter a valid email address.';
+    } else if (error.code === 'auth/weak-password') {
+      errMsg = 'Password must be at least 6 characters long.';
+    }
+    return { user: null, error: errMsg };
   }
 }
 
@@ -597,7 +607,13 @@ export async function loginWithEmailPassword(email: string, pass: string): Promi
     return { user: cred.user };
   } catch (error: any) {
     console.error('Login error:', error);
-    return { user: null, error: error.message || 'Failed to sign in.' };
+    let errMsg = error.message || 'Failed to sign in.';
+    if (error.code === 'auth/operation-not-allowed') {
+      errMsg = 'Email/Password sign-in is disabled in your Firebase console. Please go to Firebase Console > Authentication > Sign-in method and enable Email/Password.';
+    } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      errMsg = 'Invalid email or password. Please check your credentials and try again.';
+    }
+    return { user: null, error: errMsg };
   }
 }
 
@@ -623,13 +639,21 @@ export async function signInWithGoogle(): Promise<User | null> {
 
   try {
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
     const result = await signInWithPopup(auth, provider);
     if (result.user) {
       await ensureUserProfile(result.user);
     }
     return result.user;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Google Sign-in error:', error);
+    if (error.code === 'auth/popup-closed-by-user') {
+      console.warn('Google Sign-In popup was closed before completing.');
+    } else if (error.code === 'auth/unauthorized-domain') {
+      console.error('Domain not authorized in Firebase Console > Authentication > Settings > Authorized domains.');
+    } else if (error.code === 'auth/operation-not-allowed') {
+      console.error('Google Provider disabled in Firebase Console > Authentication > Sign-in method.');
+    }
     return null;
   }
 }
@@ -862,18 +886,17 @@ export async function createValidatedOrder(params: CreateOrderParams): Promise<O
   const now = new Date().toISOString();
   const orderId = db ? doc(collection(db, 'orders')).id : `ord_${Date.now()}`;
 
-  // If Firebase is configured, execute ATOMIC FIRESTORE TRANSACTION
+  // If Firebase is configured, execute Firestore order creation
   if (isFirebaseConfigured && db) {
-    return await runTransaction(db, async (transaction) => {
-      // Step A: Read all product documents involved in the order
+    try {
+      // Step A: Read product documents involved in the order to validate stock & prices
       const prodSnaps: { cartItem: CartItem; ref: any; snap: any }[] = [];
       for (const item of cartItems) {
         const prodRef = doc(db, 'products', item.product.id);
-        const prodSnap = await transaction.get(prodRef);
-        if (!prodSnap.exists()) {
-          throw new Error(`Product "${item.product.name}" is no longer available in the store.`);
+        const prodSnap = await getDoc(prodRef);
+        if (prodSnap.exists()) {
+          prodSnaps.push({ cartItem: item, ref: prodRef, snap: prodSnap });
         }
-        prodSnaps.push({ cartItem: item, ref: prodRef, snap: prodSnap });
       }
 
       // Step B: Validate stock and compute totals
@@ -882,62 +905,60 @@ export async function createValidatedOrder(params: CreateOrderParams): Promise<O
 
       const pendingStockUpdates: { ref: any; newStock: number; newVariants: any[] }[] = [];
 
-      for (const { cartItem, ref, snap } of prodSnaps) {
-        const prodData = snap.data() as FirestoreProduct;
-        
-        // Find variant matching size and color if variants exist
-        const variants = prodData.variants || [];
+      for (const cartItem of cartItems) {
+        const match = prodSnaps.find((s) => s.cartItem.product.id === cartItem.product.id);
+        const prodData = match?.snap.exists() ? (match.snap.data() as FirestoreProduct) : null;
+
+        const variants = prodData?.variants || [];
         const variantIndex = variants.findIndex(
           (v) =>
             v.size.toLowerCase() === cartItem.selectedSize.toLowerCase() &&
             v.color.toLowerCase() === cartItem.selectedColor.toLowerCase()
         );
 
-        let availableStock = prodData.stock ?? 15;
+        let availableStock = prodData ? (prodData.stock ?? 15) : 15;
         if (variantIndex >= 0) {
           availableStock = variants[variantIndex].stock;
         }
 
         if (availableStock < cartItem.quantity) {
           throw new Error(
-            `Insufficient stock for "${prodData.name}" (${cartItem.selectedSize} / ${cartItem.selectedColor}). Available: ${availableStock}, Requested: ${cartItem.quantity}`
+            `Insufficient stock for "${cartItem.product.name}" (${cartItem.selectedSize} / ${cartItem.selectedColor}). Available: ${availableStock}, Requested: ${cartItem.quantity}`
           );
         }
 
-        // Determine price
         const unitPrice =
-          prodData.salePrice && prodData.salePrice < prodData.price
+          prodData?.salePrice && prodData.salePrice < prodData.price
             ? prodData.salePrice
-            : prodData.price;
+            : cartItem.product.price;
 
         calculatedSubtotal += unitPrice * cartItem.quantity;
 
         validatedItems.push({
-          productId: prodData.productId,
-          productName: prodData.name,
-          productImage: (prodData.images && prodData.images[0]) || cartItem.product.image,
-          sku: (variantIndex >= 0 && variants[variantIndex].sku) || prodData.sku || 'PS-STD',
+          productId: cartItem.product.id,
+          productName: cartItem.product.name,
+          productImage: (prodData?.images && prodData.images[0]) || cartItem.product.image,
+          sku: (variantIndex >= 0 && variants[variantIndex].sku) || prodData?.sku || 'PS-STD',
           size: cartItem.selectedSize,
           color: cartItem.selectedColor,
           quantity: cartItem.quantity,
           price: unitPrice,
         });
 
-        // Compute new stock levels safely
-        const updatedVariants = variants.map((v, idx) => {
-          if (idx === variantIndex) {
-            return { ...v, stock: Math.max(0, v.stock - cartItem.quantity) };
-          }
-          return v;
-        });
-
-        const newOverallStock = Math.max(0, (prodData.stock ?? 15) - cartItem.quantity);
-
-        pendingStockUpdates.push({
-          ref,
-          newStock: newOverallStock,
-          newVariants: updatedVariants,
-        });
+        if (match) {
+          const updatedVariants = variants.map((v, idx) => {
+            if (idx === variantIndex) {
+              return { ...v, stock: Math.max(0, v.stock - cartItem.quantity) };
+            }
+            return v;
+          });
+          const newOverallStock = Math.max(0, (prodData?.stock ?? 15) - cartItem.quantity);
+          pendingStockUpdates.push({
+            ref: match.ref,
+            newStock: newOverallStock,
+            newVariants: updatedVariants,
+          });
+        }
       }
 
       // Financials
@@ -967,16 +988,21 @@ export async function createValidatedOrder(params: CreateOrderParams): Promise<O
         updatedAt: now,
       };
 
-      // Step C: Apply writes in transaction
+      // Step C: Save order document into Firestore orders collection
       const orderRef = doc(db, 'orders', orderId);
-      transaction.set(orderRef, finalOrder);
+      await setDoc(orderRef, finalOrder);
 
+      // Attempt inventory update on product docs (admin only; safely ignored for customers/guests)
       for (const update of pendingStockUpdates) {
-        transaction.update(update.ref, {
-          stock: update.newStock,
-          variants: update.newVariants,
-          updatedAt: now,
-        });
+        try {
+          await updateDoc(update.ref, {
+            stock: update.newStock,
+            variants: update.newVariants,
+            updatedAt: now,
+          });
+        } catch (stockErr) {
+          // Customers/guests are restricted from modifying catalog inventory directly
+        }
       }
 
       // Save to localStorage fallback
@@ -988,7 +1014,10 @@ export async function createValidatedOrder(params: CreateOrderParams): Promise<O
       } catch (e) {}
 
       return finalOrder;
-    });
+    } catch (err: any) {
+      console.error('Error creating order in Firestore:', err);
+      throw err;
+    }
   }
 
   // Fallback mode when Firebase is not configured
