@@ -197,6 +197,7 @@ export const AdminProductForm: React.FC<AdminProductFormProps> = ({ mode }) => {
         images,
         price: Number(price),
         salePrice: salePrice ? Number(salePrice) : undefined,
+        currency: 'PKR',
         sizes,
         colors,
         stock: Number(stock),

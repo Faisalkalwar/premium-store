@@ -78,32 +78,38 @@ export interface GetProductsResult {
 // PRODUCTS
 // ----------------------------------------------------------------------
 
+export function getMockFirestoreProducts(): FirestoreProduct[] {
+  return MOCK_PRODUCTS.map((p) => ({
+    productId: p.id,
+    name: p.name,
+    slug: p.slug || p.id,
+    sku: p.sku || `SKU-${p.id}`,
+    description: p.description,
+    categoryId: p.category,
+    collectionIds: p.isFeatured ? ['summer-grails-24'] : ['cyber-archive'],
+    images: [p.image, p.hoverImage].filter(Boolean),
+    price: p.originalPrice ? p.originalPrice : p.price,
+    salePrice: p.originalPrice ? p.price : undefined,
+    currency: 'PKR',
+    sizes: p.sizes,
+    colors: p.colors,
+    variants: [],
+    stock: p.stock ?? 25,
+    tags: p.tags || [],
+    featured: !!p.isFeatured,
+    newArrival: !!p.isNew,
+    bestSeller: !!p.isBestSeller,
+    status: 'active' as const,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }));
+}
+
 export async function getProducts(options: GetProductsQueryOptions = {}): Promise<GetProductsResult> {
   if (!isFirebaseConfigured || !db) {
     console.warn('Firestore not initialized, returning filtered mock data');
-    let filtered = MOCK_PRODUCTS.map((p) => ({
-      productId: p.id,
-      name: p.name,
-      slug: p.slug || p.id,
-      sku: p.sku || `SKU-${p.id}`,
-      description: p.description,
-      categoryId: p.category,
-      collectionIds: [],
-      images: [p.image, p.hoverImage],
-      price: p.originalPrice || p.price,
-      salePrice: p.originalPrice ? p.price : undefined,
-      sizes: p.sizes,
-      colors: p.colors,
-      variants: [],
-      stock: p.stock ?? 25,
-      tags: p.tags || [],
-      featured: !!p.isFeatured,
-      newArrival: !!p.isNew,
-      bestSeller: !!p.isBestSeller,
-      status: 'active' as const,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
+    const mockList = getMockFirestoreProducts();
+    let filtered = [...mockList];
 
     if (options.categoryId && options.categoryId !== 'all') {
       filtered = filtered.filter((p) => p.categoryId === options.categoryId);
@@ -219,9 +225,34 @@ export async function getProducts(options: GetProductsQueryOptions = {}): Promis
       hasMore: querySnapshot.docs.length === fetchLimit,
     };
   } catch (error) {
-    console.error('Error fetching products from Firestore:', error);
+    console.warn('Firestore products fetch issue, attempting unconstrained query fallback:', error);
+    try {
+      const snap = await getDocs(collection(db, 'products'));
+      if (!snap.empty) {
+        let fetchedProducts: FirestoreProduct[] = snap.docs.map((d) => ({
+          ...(d.data() as FirestoreProduct),
+          productId: d.id,
+        }));
+        if (options.categoryId && options.categoryId !== 'all') {
+          fetchedProducts = fetchedProducts.filter((p) => p.categoryId === options.categoryId);
+        }
+        return {
+          products: fetchedProducts,
+          lastDocSnap: snap.docs[snap.docs.length - 1] || null,
+          hasMore: false,
+        };
+      }
+    } catch (fallbackErr) {
+      console.warn('Firestore fallback query failed or offline, returning mock products:', fallbackErr);
+    }
+
+    const mockList = getMockFirestoreProducts();
+    let filtered = options.categoryId && options.categoryId !== 'all'
+      ? mockList.filter((p) => p.categoryId === options.categoryId)
+      : mockList;
+
     return {
-      products: [],
+      products: filtered,
       lastDocSnap: null,
       hasMore: false,
     };
@@ -229,7 +260,12 @@ export async function getProducts(options: GetProductsQueryOptions = {}): Promis
 }
 
 export async function getProductBySlug(slug: string): Promise<FirestoreProduct | null> {
-  if (!isFirebaseConfigured || !db) return null;
+  const findInMock = () => {
+    const mockList = getMockFirestoreProducts();
+    return mockList.find((p) => p.slug === slug || p.productId === slug) || null;
+  };
+
+  if (!isFirebaseConfigured || !db) return findInMock();
 
   try {
     const productsRef = collection(db, 'products');
@@ -243,19 +279,24 @@ export async function getProductBySlug(slug: string): Promise<FirestoreProduct |
       if (docSnap.exists()) {
         return { ...(docSnap.data() as FirestoreProduct), productId: docSnap.id };
       }
-      return null;
+      return findInMock();
     }
 
     const docSnap = snapshot.docs[0];
     return { ...(docSnap.data() as FirestoreProduct), productId: docSnap.id };
   } catch (error) {
-    console.error(`Error getting product by slug ${slug}:`, error);
-    return null;
+    console.warn(`Error getting product by slug ${slug}, checking fallback:`, error);
+    return findInMock();
   }
 }
 
 export async function getProductById(productId: string): Promise<FirestoreProduct | null> {
-  if (!isFirebaseConfigured || !db) return null;
+  const findInMock = () => {
+    const mockList = getMockFirestoreProducts();
+    return mockList.find((p) => p.productId === productId) || null;
+  };
+
+  if (!isFirebaseConfigured || !db) return findInMock();
 
   try {
     const docRef = doc(db, 'products', productId);
@@ -263,10 +304,10 @@ export async function getProductById(productId: string): Promise<FirestoreProduc
     if (docSnap.exists()) {
       return { ...(docSnap.data() as FirestoreProduct), productId: docSnap.id };
     }
-    return null;
+    return findInMock();
   } catch (error) {
-    console.error(`Error getting product by ID ${productId}:`, error);
-    return null;
+    console.warn(`Error getting product by ID ${productId}, checking fallback:`, error);
+    return findInMock();
   }
 }
 
@@ -275,18 +316,20 @@ export async function getProductById(productId: string): Promise<FirestoreProduc
 // ----------------------------------------------------------------------
 
 export async function getCategories(): Promise<FirestoreCategory[]> {
+  const fallbackCategories = CATEGORIES.map((c, i) => ({
+    categoryId: c.id,
+    name: c.name,
+    slug: c.id,
+    description: c.tagline,
+    image: c.image,
+    active: true,
+    sortOrder: i,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }));
+
   if (!isFirebaseConfigured || !db) {
-    return CATEGORIES.map((c, i) => ({
-      categoryId: c.id,
-      name: c.name,
-      slug: c.id,
-      description: c.tagline,
-      image: c.image,
-      active: true,
-      sortOrder: i,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
+    return fallbackCategories;
   }
 
   try {
@@ -294,42 +337,46 @@ export async function getCategories(): Promise<FirestoreCategory[]> {
     const q = query(categoriesRef, where('active', '==', true), orderBy('sortOrder', 'asc'));
     const snapshot = await getDocs(q);
 
+    if (snapshot.empty) return fallbackCategories;
+
     return snapshot.docs.map((doc) => ({
       ...(doc.data() as FirestoreCategory),
       categoryId: doc.id,
     }));
   } catch (error) {
-    console.error('Error getting categories from Firestore:', error);
-    return [];
+    console.warn('Error getting categories from Firestore, returning fallback:', error);
+    return fallbackCategories;
   }
 }
 
 export async function getCollections(): Promise<FirestoreCollection[]> {
+  const fallbackCollections: FirestoreCollection[] = [
+    {
+      collectionId: 'summer-grails-24',
+      name: 'Summer Grails 2024',
+      slug: 'summer-grails-24',
+      description: 'Acid wash oversized boxy silhouettes & industrial cutouts',
+      image: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=80&w=1000&auto=format&fit=crop',
+      active: true,
+      sortOrder: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      collectionId: 'cyber-archive',
+      name: 'Cyber Archive',
+      slug: 'cyber-archive',
+      description: 'Tactical cargo outerwear and technical headwear drops',
+      image: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?q=80&w=1000&auto=format&fit=crop',
+      active: true,
+      sortOrder: 2,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ];
+
   if (!isFirebaseConfigured || !db) {
-    return [
-      {
-        collectionId: 'summer-grails-24',
-        name: 'Summer Grails 2024',
-        slug: 'summer-grails-24',
-        description: 'Acid wash oversized boxy silhouettes & industrial cutouts',
-        image: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=80&w=1000&auto=format&fit=crop',
-        active: true,
-        sortOrder: 1,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        collectionId: 'cyber-archive',
-        name: 'Cyber Archive',
-        slug: 'cyber-archive',
-        description: 'Tactical cargo outerwear and technical headwear drops',
-        image: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?q=80&w=1000&auto=format&fit=crop',
-        active: true,
-        sortOrder: 2,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
+    return fallbackCollections;
   }
 
   try {
@@ -337,13 +384,15 @@ export async function getCollections(): Promise<FirestoreCollection[]> {
     const q = query(collectionsRef, where('active', '==', true), orderBy('sortOrder', 'asc'));
     const snapshot = await getDocs(q);
 
+    if (snapshot.empty) return fallbackCollections;
+
     return snapshot.docs.map((doc) => ({
       ...(doc.data() as FirestoreCollection),
       collectionId: doc.id,
     }));
   } catch (error) {
-    console.error('Error getting collections from Firestore:', error);
-    return [];
+    console.warn('Error getting collections from Firestore, returning fallback:', error);
+    return fallbackCollections;
   }
 }
 
@@ -499,8 +548,9 @@ export async function seedFirestoreDatabase(): Promise<{ success: boolean; messa
           categoryId: mp.category,
           collectionIds: mp.isFeatured ? ['summer-grails-24'] : ['cyber-archive'],
           images: [mp.image, mp.hoverImage].filter(Boolean),
-          price: mp.originalPrice || mp.price,
+          price: mp.originalPrice ? mp.originalPrice : mp.price,
           salePrice: mp.originalPrice ? mp.price : undefined,
+          currency: 'PKR',
           sizes: mp.sizes,
           colors: mp.colors,
           variants: mp.sizes.map((sz) => ({

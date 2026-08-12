@@ -50,6 +50,7 @@ export interface FirestoreProduct {
   images: string[];
   price: number;
   salePrice?: number;
+  currency?: string;
   sizes: string[];
   colors: { name: string; hex: string }[];
   variants: Array<{
@@ -119,13 +120,6 @@ export function mapFirestoreProductToProduct(fp: FirestoreProduct): Product {
 
   let originalPrice = fp.salePrice && fp.salePrice < fp.price ? fp.price : undefined;
   let effectivePrice = fp.salePrice && fp.salePrice < fp.price ? fp.salePrice : fp.price;
-
-  if (categoryKey === 'caps' || (fp.productId && fp.productId.toLowerCase().includes('cap'))) {
-    effectivePrice = 600;
-    if (originalPrice && originalPrice <= 600) {
-      originalPrice = 850;
-    }
-  }
 
   const discountPercent = originalPrice ? Math.round(((originalPrice - effectivePrice) / originalPrice) * 100) : undefined;
 
