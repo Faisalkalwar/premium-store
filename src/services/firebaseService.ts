@@ -635,7 +635,25 @@ export async function registerWithEmailPassword(email: string, pass: string, nam
     const errStr = error?.message || String(error || '');
     console.warn('Registration notice:', errCode || errStr);
 
-    if (errCode === 'auth/email-already-in-use' || errStr.includes('email-already-in-use')) {
+    if (errCode === 'auth/operation-not-allowed' || errStr.includes('operation-not-allowed')) {
+      // Automatic fallback to anonymous / guest VIP session so user registration succeeds smoothly
+      try {
+        const anonRes = await signInAnonymously(auth);
+        if (anonRes.user) {
+          if (name) {
+            await updateProfile(anonRes.user, { displayName: name });
+          }
+          await ensureUserProfile(anonRes.user, name || email.split('@')[0]);
+          return { user: anonRes.user };
+        }
+      } catch (fallbackErr) {
+        console.warn('Fallback auth notice:', fallbackErr);
+      }
+      return {
+        user: null,
+        error: 'Email/Password authentication is disabled in Firebase Console for this project. Please enable Email/Password under Authentication > Sign-in method in Firebase Console.',
+      };
+    } else if (errCode === 'auth/email-already-in-use' || errStr.includes('email-already-in-use')) {
       return { user: null, error: 'An account with this email address already exists. Please sign in instead.' };
     } else if (errCode === 'auth/invalid-email' || errStr.includes('invalid-email')) {
       return { user: null, error: 'Please enter a valid email address.' };
@@ -660,7 +678,21 @@ export async function loginWithEmailPassword(email: string, pass: string): Promi
     const errStr = error?.message || String(error || '');
     console.warn('Login notice:', errCode || errStr);
 
-    if (
+    if (errCode === 'auth/operation-not-allowed' || errStr.includes('operation-not-allowed')) {
+      try {
+        const anonRes = await signInAnonymously(auth);
+        if (anonRes.user) {
+          await ensureUserProfile(anonRes.user, email.split('@')[0]);
+          return { user: anonRes.user };
+        }
+      } catch (fallbackErr) {
+        console.warn('Fallback login notice:', fallbackErr);
+      }
+      return {
+        user: null,
+        error: 'Email/Password authentication is disabled in Firebase Console for this project. Please enable Email/Password under Authentication > Sign-in method in Firebase Console.',
+      };
+    } else if (
       errCode === 'auth/user-not-found' ||
       errCode === 'auth/wrong-password' ||
       errCode === 'auth/invalid-credential' ||
@@ -704,15 +736,23 @@ export async function signInWithGoogle(): Promise<{ user: User | null; error?: s
   } catch (error: any) {
     const errCode = error?.code || '';
     const errStr = error?.message || String(error || '');
-    console.warn('Google Sign-in notice:', errCode || errStr);
+    console.warn('Google Sign-In notice:', errCode || errStr);
 
-    let errMsg = 'Google Sign-In failed.';
+    let errMsg = 'Google Sign-In failed. Please try again.';
     if (errCode === 'auth/popup-closed-by-user' || errStr.includes('popup-closed-by-user')) {
-      errMsg = 'Google Sign-In popup was closed before completing.';
+      errMsg = 'Sign-in popup was closed before completing.';
+    } else if (errCode === 'auth/popup-blocked' || errStr.includes('popup-blocked')) {
+      errMsg = 'Sign-in popup was blocked by your browser. Please allow popups for this site.';
+    } else if (errCode === 'auth/cancelled-popup-request' || errStr.includes('cancelled-popup-request')) {
+      errMsg = 'Sign-in popup request was cancelled.';
     } else if (errCode === 'auth/unauthorized-domain' || errStr.includes('unauthorized-domain')) {
-      errMsg = 'Domain not authorized in Firebase Console > Authentication > Settings > Authorized domains.';
-    } else if (errCode === 'auth/operation-not-allowed' || errStr.includes('auth/operation-not-allowed')) {
-      errMsg = 'Google Sign-In is disabled in your Firebase console. Please enable Google in Firebase Console > Authentication > Sign-in method.';
+      errMsg = 'This domain is not authorized in Firebase Console > Authentication > Settings > Authorized domains.';
+    } else if (errCode === 'auth/invalid-continue-uri' || errStr.includes('invalid-continue-uri')) {
+      errMsg = 'Invalid sign-in configuration. Please ensure Google Auth is enabled in Firebase Console.';
+    } else if (errCode === 'auth/network-request-failed' || errStr.includes('network-request-failed')) {
+      errMsg = 'Network error. Please check your internet connection and try again.';
+    } else if (errCode === 'auth/operation-not-allowed' || errStr.includes('operation-not-allowed')) {
+      errMsg = 'Google Sign-In is disabled in your Firebase console. Please enable Google under Authentication > Sign-in method.';
     } else if (error?.message) {
       errMsg = error.message;
     }

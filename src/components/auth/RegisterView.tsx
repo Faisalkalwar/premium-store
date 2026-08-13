@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useShop } from '../../context/ShopContext';
-import { registerWithEmailPassword, signInWithGoogle } from '../../services/firebaseService';
-import { User, Mail, Lock, ArrowRight, Loader2, ShieldCheck, CheckCircle } from 'lucide-react';
+import { registerWithEmailPassword, signInWithGoogle, signInAnonymouslyUser } from '../../services/firebaseService';
+import { User, Mail, Lock, ArrowRight, Loader2, ShieldCheck, CheckCircle, Zap } from 'lucide-react';
 import { Logo } from '../layout/Logo';
 
 export const RegisterView: React.FC = () => {
@@ -13,6 +13,7 @@ export const RegisterView: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,6 +61,20 @@ export const RegisterView: React.FC = () => {
     }
   };
 
+  const handleGuestSignIn = async () => {
+    setError(null);
+    setIsGuestLoading(true);
+    const user = await signInAnonymouslyUser();
+    setIsGuestLoading(false);
+
+    if (user) {
+      showToast('Signed in as Guest VIP Member!');
+      navigateTo('account');
+    } else {
+      setError('Failed to sign in as guest.');
+    }
+  };
+
   return (
     <div className="max-w-md mx-auto px-4 py-12 sm:py-20">
       <div className="bg-neutral-950 border border-neutral-800 p-6 sm:p-8 rounded-none shadow-2xl">
@@ -81,37 +96,53 @@ export const RegisterView: React.FC = () => {
           </div>
         )}
 
-        {/* GOOGLE SIGN IN */}
-        <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          disabled={isGoogleLoading || isLoading}
-          className="w-full bg-neutral-900 border border-neutral-700 hover:border-[#00e65c] text-white py-3 px-4 text-xs font-syne font-bold uppercase tracking-wider flex items-center justify-center gap-3 transition-colors mb-6 disabled:opacity-50"
-        >
-          {isGoogleLoading ? (
-            <Loader2 size={16} className="animate-spin text-[#00e65c]" />
-          ) : (
-            <svg className="w-4 h-4" viewBox="0 0 24 24">
-              <path
-                fill="#EA4335"
-                d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.1 9 5 12 5z"
-              />
-              <path
-                fill="#4285F4"
-                d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15s.7 5.3 1.9 7.7l3.7-2.9c-.8-.7-1.4-1.6-1.7-2.7z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.1-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"
-              />
-            </svg>
-          )}
-          <span>Quick Register with Google</span>
-        </button>
+        {/* GOOGLE & GUEST SIGN IN */}
+        <div className="space-y-3 mb-6">
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={isGoogleLoading || isLoading || isGuestLoading}
+            className="w-full bg-neutral-900 border border-neutral-700 hover:border-[#00e65c] text-white py-3 px-4 text-xs font-syne font-bold uppercase tracking-wider flex items-center justify-center gap-3 transition-colors disabled:opacity-50"
+          >
+            {isGoogleLoading ? (
+              <Loader2 size={16} className="animate-spin text-[#00e65c]" />
+            ) : (
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <path
+                  fill="#EA4335"
+                  d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.1 9 5 12 5z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15s.7 5.3 1.9 7.7l3.7-2.9c-.8-.7-1.4-1.6-1.7-2.7z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.1-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"
+                />
+              </svg>
+            )}
+            <span>Quick Register with Google</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleGuestSignIn}
+            disabled={isGuestLoading || isLoading || isGoogleLoading}
+            className="w-full bg-neutral-900/80 border border-emerald-500/30 hover:border-[#00e65c] text-[#00e65c] py-2.5 px-4 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+          >
+            {isGuestLoading ? (
+              <Loader2 size={14} className="animate-spin text-[#00e65c]" />
+            ) : (
+              <Zap size={14} className="text-[#00e65c]" />
+            )}
+            <span>Instant Guest VIP Access</span>
+          </button>
+        </div>
 
         <div className="relative flex items-center justify-center mb-6">
           <div className="border-t border-neutral-800 w-full" />

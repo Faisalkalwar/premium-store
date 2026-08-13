@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore, doc, getDocFromServer } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, Firestore, doc, getDocFromServer, setLogLevel } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 
@@ -17,14 +17,27 @@ interface FirebaseConfig {
 // Resolution logic: Prefer VITE_FIREBASE_* env vars, fallback to firebase-applet-config.json
 const env = (import.meta as any).env || {};
 
+const targetProjectId = (env.VITE_FIREBASE_PROJECT_ID && env.VITE_FIREBASE_PROJECT_ID.trim()) 
+  ? env.VITE_FIREBASE_PROJECT_ID.trim() 
+  : (firebaseConfigJson?.projectId || 'premium-store-9c496');
+
+// Validate authDomain: Must end in .firebaseapp.com or be a valid domain (not a vercel app URL)
+let targetAuthDomain = env.VITE_FIREBASE_AUTH_DOMAIN && env.VITE_FIREBASE_AUTH_DOMAIN.trim()
+  ? env.VITE_FIREBASE_AUTH_DOMAIN.trim()
+  : firebaseConfigJson?.authDomain;
+
+if (!targetAuthDomain || targetAuthDomain.includes('vercel.app') || targetAuthDomain.startsWith('http')) {
+  targetAuthDomain = `${targetProjectId}.firebaseapp.com`;
+}
+
 const rawConfig: FirebaseConfig = {
-  apiKey: env.VITE_FIREBASE_API_KEY || firebaseConfigJson?.apiKey,
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfigJson?.authDomain,
-  projectId: env.VITE_FIREBASE_PROJECT_ID || firebaseConfigJson?.projectId,
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfigJson?.storageBucket,
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfigJson?.messagingSenderId,
-  appId: env.VITE_FIREBASE_APP_ID || firebaseConfigJson?.appId,
-  firestoreDatabaseId: env.VITE_FIREBASE_DATABASE_ID || firebaseConfigJson?.firestoreDatabaseId,
+  apiKey: (env.VITE_FIREBASE_API_KEY && env.VITE_FIREBASE_API_KEY.trim()) || firebaseConfigJson?.apiKey,
+  authDomain: targetAuthDomain,
+  projectId: targetProjectId,
+  storageBucket: (env.VITE_FIREBASE_STORAGE_BUCKET && env.VITE_FIREBASE_STORAGE_BUCKET.trim()) || firebaseConfigJson?.storageBucket,
+  messagingSenderId: (env.VITE_FIREBASE_MESSAGING_SENDER_ID && env.VITE_FIREBASE_MESSAGING_SENDER_ID.trim()) || firebaseConfigJson?.messagingSenderId,
+  appId: (env.VITE_FIREBASE_APP_ID && env.VITE_FIREBASE_APP_ID.trim()) || firebaseConfigJson?.appId,
+  firestoreDatabaseId: (env.VITE_FIREBASE_DATABASE_ID && env.VITE_FIREBASE_DATABASE_ID.trim()) || firebaseConfigJson?.firestoreDatabaseId,
 };
 
 let app: FirebaseApp | null = null;
@@ -51,15 +64,26 @@ try {
 
     auth = getAuth(app);
 
-    // If custom firestore database ID is set, pass it to getFirestore
+    // Suppress verbose SDK transport logs in browser console
+    try {
+      setLogLevel('error');
+    } catch {
+      // Ignore if setLogLevel fails
+    }
+
+    // If custom firestore database ID is set, pass it to initializeFirestore
     const databaseId = rawConfig.firestoreDatabaseId && rawConfig.firestoreDatabaseId !== '(default)'
       ? rawConfig.firestoreDatabaseId
       : undefined;
 
-    if (databaseId) {
-      db = getFirestore(app, databaseId);
-    } else {
-      db = getFirestore(app);
+    try {
+      if (databaseId) {
+        db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true }, databaseId);
+      } else {
+        db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+      }
+    } catch {
+      db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
     }
 
     storage = getStorage(app);
