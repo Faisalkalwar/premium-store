@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { getFirestore, Firestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 
@@ -73,4 +73,90 @@ try {
   isFirebaseConfigured = false;
 }
 
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth?.currentUser?.uid || null,
+      email: auth?.currentUser?.email || null,
+      emailVerified: auth?.currentUser?.emailVerified || null,
+      isAnonymous: auth?.currentUser?.isAnonymous || null,
+      tenantId: auth?.currentUser?.tenantId || null,
+      providerInfo: auth?.currentUser?.providerData?.map((provider) => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || [],
+    },
+    operationType,
+    path,
+  };
+  console.warn('Firestore Error Info:', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+export async function testConnection() {
+  if (!db) return false;
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+    return true;
+  } catch (error: any) {
+    if (error?.message?.includes('offline') || error?.message?.includes('unavailable') || error?.code === 'unavailable') {
+      console.warn('Firebase connection check: client is offline or backend unavailable.');
+    }
+    return false;
+  }
+}
+
+// Reusable Authentication Helpers
+export function getCurrentUser() {
+  return auth?.currentUser || null;
+}
+
+export async function registerUser(email: string, pass: string, name: string) {
+  const { registerWithEmailPassword } = await import('../services/firebaseService');
+  return registerWithEmailPassword(email, pass, name);
+}
+
+export async function loginUser(email: string, pass: string) {
+  const { loginWithEmailPassword } = await import('../services/firebaseService');
+  return loginWithEmailPassword(email, pass);
+}
+
+export async function loginWithGoogle() {
+  const { signInWithGoogle } = await import('../services/firebaseService');
+  return signInWithGoogle();
+}
+
+export async function logoutUser() {
+  const { signOutUser } = await import('../services/firebaseService');
+  return signOutUser();
+}
+
 export { app, auth, db, storage, isFirebaseConfigured, firebaseInitError };
+

@@ -49,14 +49,14 @@ export const RegisterView: React.FC = () => {
   const handleGoogleSignIn = async () => {
     setError(null);
     setIsGoogleLoading(true);
-    const user = await signInWithGoogle();
+    const res = await signInWithGoogle();
     setIsGoogleLoading(false);
 
-    if (user) {
-      showToast(`Welcome, ${user.displayName || 'Customer'}!`);
+    if (res.user) {
+      showToast(`Welcome, ${res.user.displayName || 'Customer'}!`);
       navigateTo('account');
     } else {
-      setError('Google Sign-In was cancelled or failed.');
+      setError(res.error || 'Google Sign-In was cancelled or failed.');
     }
   };
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Lock, Mail, ArrowRight, Shield, Crown, LogOut, CheckCircle2 } from 'lucide-react';
+import { X, Lock, Mail, ArrowRight, Shield, Crown, LogOut, CheckCircle2, Loader2 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
+import { loginWithEmailPassword, registerWithEmailPassword } from '../../services/firebaseService';
 import { Logo } from '../layout/Logo';
 
 export const AccountModal: React.FC = () => {
@@ -19,17 +20,40 @@ export const AccountModal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'signin' | 'join'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isAccountModalOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (activeTab === 'signin') {
-      showToast('Signed in successfully! Welcome back to Premium Store.');
-    } else {
-      showToast('Welcome to the Premium Store Streetwear Club! Check your email for 15% off.');
+    setError(null);
+
+    if (!email || !password) {
+      setError('Please enter email address and password.');
+      return;
     }
-    setIsAccountModalOpen(false);
+
+    setIsLoading(true);
+    if (activeTab === 'signin') {
+      const res = await loginWithEmailPassword(email, password);
+      setIsLoading(false);
+      if (res.error) {
+        setError(res.error);
+      } else {
+        showToast('Signed in successfully! Welcome back.');
+        setIsAccountModalOpen(false);
+      }
+    } else {
+      const res = await registerWithEmailPassword(email, password, email.split('@')[0]);
+      setIsLoading(false);
+      if (res.error) {
+        setError(res.error);
+      } else {
+        showToast('VIP Account created! Welcome to Premium Store.');
+        setIsAccountModalOpen(false);
+      }
+    }
   };
 
   return (
@@ -105,7 +129,14 @@ export const AccountModal: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* GOOGLE & GUEST QUICK AUTH */}
+            {/* ERROR DISPLAY */}
+        {error && (
+          <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-mono">
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* GOOGLE & GUEST QUICK AUTH */}
             {isFirebaseConfigured && (
               <div className="space-y-2.5 mb-6">
                 <button

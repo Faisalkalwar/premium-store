@@ -23,8 +23,8 @@ export const FirebaseStatusWidget: React.FC = () => {
         const prodSnap = await getDocs(collection(db, 'products'));
         setFirestoreConnected(true);
         setFirestoreProductCount(prodSnap.size);
-      } catch (err) {
-        console.error('Firestore verification failed:', err);
+      } catch (err: any) {
+        console.warn('Firestore verification check:', err?.message || err);
         setFirestoreConnected(false);
       }
     } else {

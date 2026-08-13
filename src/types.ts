@@ -224,6 +224,7 @@ export type PaymentStatus = 'Pending' | 'Paid' | 'Refunded';
 export interface OrderShippingAddress {
   fullName: string;
   phone: string;
+  whatsapp?: string;
   email: string;
   province: string;
   city: string;
@@ -255,6 +256,7 @@ export interface Order {
   userId: string | null;
   customerName: string;
   phone: string;
+  whatsapp?: string;
   email: string;
   items: OrderItem[];
   shippingAddress: OrderShippingAddress;

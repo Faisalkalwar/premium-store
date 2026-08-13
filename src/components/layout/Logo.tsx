@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 interface LogoProps {
   className?: string;
@@ -6,53 +6,31 @@ interface LogoProps {
   heightClass?: string;
 }
 
-export const Logo: React.FC<LogoProps> = ({ className = '', heightClass = 'h-8 sm:h-10 lg:h-11' }) => {
-  const [imgStage, setImgStage] = useState<number>(0);
-
-  const handleImgError = () => {
-    setImgStage((prev) => prev + 1);
-  };
-
+export const Logo: React.FC<LogoProps> = ({ className = '', lightMode = false }) => {
   return (
-    <div className={`inline-flex items-center select-none ${className}`}>
-      {imgStage === 0 && (
-        <img
-          src="/images/premium-store-logo.png"
-          alt="PREMIUM STORE"
-          className={`${heightClass} w-auto max-w-[240px] sm:max-w-[280px] object-contain transition-transform duration-300 hover:scale-105 shrink-0`}
-          onError={handleImgError}
-        />
-      )}
-      {imgStage === 1 && (
-        <img
-          src="/logo.png"
-          alt="PREMIUM STORE"
-          className={`${heightClass} w-auto max-w-[240px] sm:max-w-[280px] object-contain transition-transform duration-300 hover:scale-105 shrink-0`}
-          onError={handleImgError}
-        />
-      )}
-      {imgStage === 2 && (
-        <img
-          src="/logo.svg"
-          alt="PREMIUM STORE"
-          className={`${heightClass} w-auto max-w-[240px] sm:max-w-[280px] object-contain transition-transform duration-300 hover:scale-105 shrink-0`}
-          onError={handleImgError}
-        />
-      )}
-      {imgStage >= 3 && (
-        <div className={`flex items-center font-black tracking-tight ${heightClass} hover:scale-105 transition-transform`}>
-          <span className="text-[#00e65c] font-black italic text-xl sm:text-2xl tracking-wider mr-1.5 drop-shadow-[0_0_8px_rgba(0,230,92,0.4)]">
-            PREMIUM
-          </span>
-          <span className="text-white font-black text-lg sm:text-xl tracking-wide">
-            STORE
-          </span>
-        </div>
-      )}
+    <div className={`inline-flex flex-col items-start cursor-pointer group select-none shrink-0 ${className}`}>
+      <div className="flex items-baseline gap-1.5 sm:gap-2 leading-none">
+        {/* PREMIUM - Italicized Neon Green Streetwear Font */}
+        <span
+          className="font-black italic text-xl sm:text-2xl lg:text-3xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#00ff66] via-[#00e65c] to-[#00cc44] drop-shadow-[0_0_10px_rgba(0,255,102,0.45)] uppercase"
+          style={{ fontFamily: "'Syne', 'Impact', 'Arial Black', sans-serif" }}
+        >
+          PREMIUM
+        </span>
+
+        {/* STORE - High-Contrast Bold Text */}
+        <span
+          className={`font-black text-lg sm:text-xl lg:text-2xl tracking-wider uppercase ${
+            lightMode ? 'text-zinc-900' : 'text-white'
+          }`}
+          style={{ fontFamily: "'Syne', 'Plus Jakarta Sans', sans-serif" }}
+        >
+          STORE
+        </span>
+      </div>
+
+      {/* Neon Spray Underline Accent */}
+      <div className="w-full h-[3px] sm:h-[4px] mt-1 rounded-full bg-gradient-to-r from-[#00ff66] via-[#00e65c] to-transparent shadow-[0_0_8px_#00ff66] origin-left transition-transform duration-300 group-hover:scale-x-105" />
     </div>
   );
 };
-
-
-
-

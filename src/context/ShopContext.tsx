@@ -654,12 +654,12 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const googleSignIn = async () => {
-    const u = await signInWithGoogle();
-    if (u) {
-      showToast(`Welcome ${u.displayName || 'Member'}! Signed in with Google.`);
+    const res = await signInWithGoogle();
+    if (res.user) {
+      showToast(`Welcome ${res.user.displayName || 'Member'}! Signed in with Google.`);
       setIsAccountModalOpen(false);
     } else {
-      showToast('Sign in cancelled or not configured.');
+      showToast(res.error || 'Sign in cancelled or not configured.');
     }
   };
 

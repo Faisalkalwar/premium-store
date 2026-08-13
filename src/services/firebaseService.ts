@@ -631,18 +631,18 @@ export async function registerWithEmailPassword(email: string, pass: string, nam
     await ensureUserProfile(cred.user, name);
     return { user: cred.user };
   } catch (error: any) {
-    console.error('Registration error:', error);
-    let errMsg = error.message || 'Failed to register account.';
-    if (error.code === 'auth/operation-not-allowed') {
-      errMsg = 'Email/Password sign-in is disabled in your Firebase console. Please go to Firebase Console > Authentication > Sign-in method and enable Email/Password.';
-    } else if (error.code === 'auth/email-already-in-use') {
-      errMsg = 'An account with this email address already exists. Please sign in instead.';
-    } else if (error.code === 'auth/invalid-email') {
-      errMsg = 'Please enter a valid email address.';
-    } else if (error.code === 'auth/weak-password') {
-      errMsg = 'Password must be at least 6 characters long.';
+    const errCode = error?.code || '';
+    const errStr = error?.message || String(error || '');
+    console.warn('Registration notice:', errCode || errStr);
+
+    if (errCode === 'auth/email-already-in-use' || errStr.includes('email-already-in-use')) {
+      return { user: null, error: 'An account with this email address already exists. Please sign in instead.' };
+    } else if (errCode === 'auth/invalid-email' || errStr.includes('invalid-email')) {
+      return { user: null, error: 'Please enter a valid email address.' };
+    } else if (errCode === 'auth/weak-password' || errStr.includes('weak-password')) {
+      return { user: null, error: 'Password must be at least 6 characters long.' };
     }
-    return { user: null, error: errMsg };
+    return { user: null, error: error?.message || 'Failed to register account.' };
   }
 }
 
@@ -656,14 +656,21 @@ export async function loginWithEmailPassword(email: string, pass: string): Promi
     await ensureUserProfile(cred.user);
     return { user: cred.user };
   } catch (error: any) {
-    console.error('Login error:', error);
-    let errMsg = error.message || 'Failed to sign in.';
-    if (error.code === 'auth/operation-not-allowed') {
-      errMsg = 'Email/Password sign-in is disabled in your Firebase console. Please go to Firebase Console > Authentication > Sign-in method and enable Email/Password.';
-    } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-      errMsg = 'Invalid email or password. Please check your credentials and try again.';
+    const errCode = error?.code || '';
+    const errStr = error?.message || String(error || '');
+    console.warn('Login notice:', errCode || errStr);
+
+    if (
+      errCode === 'auth/user-not-found' ||
+      errCode === 'auth/wrong-password' ||
+      errCode === 'auth/invalid-credential' ||
+      errStr.includes('invalid-credential') ||
+      errStr.includes('user-not-found') ||
+      errStr.includes('wrong-password')
+    ) {
+      return { user: null, error: 'Invalid email or password. Please check your credentials and try again.' };
     }
-    return { user: null, error: errMsg };
+    return { user: null, error: error?.message || 'Failed to sign in.' };
   }
 }
 
@@ -676,15 +683,14 @@ export async function sendPasswordReset(email: string): Promise<{ success: boole
     await sendPasswordResetEmail(auth, email);
     return { success: true };
   } catch (error: any) {
-    console.error('Password reset error:', error);
-    return { success: false, error: error.message || 'Failed to send reset email.' };
+    console.warn('Password reset notice:', error?.message || error);
+    return { success: false, error: error?.message || 'Failed to send reset email.' };
   }
 }
 
-export async function signInWithGoogle(): Promise<User | null> {
+export async function signInWithGoogle(): Promise<{ user: User | null; error?: string }> {
   if (!isFirebaseConfigured || !auth) {
-    console.warn('Firebase Auth is not configured');
-    return null;
+    return { user: null, error: 'Firebase Auth is not configured.' };
   }
 
   try {
@@ -694,17 +700,23 @@ export async function signInWithGoogle(): Promise<User | null> {
     if (result.user) {
       await ensureUserProfile(result.user);
     }
-    return result.user;
+    return { user: result.user };
   } catch (error: any) {
-    console.error('Google Sign-in error:', error);
-    if (error.code === 'auth/popup-closed-by-user') {
-      console.warn('Google Sign-In popup was closed before completing.');
-    } else if (error.code === 'auth/unauthorized-domain') {
-      console.error('Domain not authorized in Firebase Console > Authentication > Settings > Authorized domains.');
-    } else if (error.code === 'auth/operation-not-allowed') {
-      console.error('Google Provider disabled in Firebase Console > Authentication > Sign-in method.');
+    const errCode = error?.code || '';
+    const errStr = error?.message || String(error || '');
+    console.warn('Google Sign-in notice:', errCode || errStr);
+
+    let errMsg = 'Google Sign-In failed.';
+    if (errCode === 'auth/popup-closed-by-user' || errStr.includes('popup-closed-by-user')) {
+      errMsg = 'Google Sign-In popup was closed before completing.';
+    } else if (errCode === 'auth/unauthorized-domain' || errStr.includes('unauthorized-domain')) {
+      errMsg = 'Domain not authorized in Firebase Console > Authentication > Settings > Authorized domains.';
+    } else if (errCode === 'auth/operation-not-allowed' || errStr.includes('auth/operation-not-allowed')) {
+      errMsg = 'Google Sign-In is disabled in your Firebase console. Please enable Google in Firebase Console > Authentication > Sign-in method.';
+    } else if (error?.message) {
+      errMsg = error.message;
     }
-    return null;
+    return { user: null, error: errMsg };
   }
 }
 
@@ -717,8 +729,8 @@ export async function signInAnonymouslyUser(): Promise<User | null> {
       await ensureUserProfile(result.user, 'Guest Member');
     }
     return result.user;
-  } catch (error) {
-    console.error('Anonymous sign in error:', error);
+  } catch (error: any) {
+    console.warn('Anonymous sign in notice:', error?.message || error);
     return null;
   }
 }
@@ -808,6 +820,15 @@ export async function deleteUserAddress(uid: string, addressId: string): Promise
 export async function signOutUser(): Promise<void> {
   if (!isFirebaseConfigured || !auth) return;
   await signOut(auth);
+}
+
+// Reusable named exports for requirement compliance
+export const registerUser = registerWithEmailPassword;
+export const loginUser = loginWithEmailPassword;
+export const loginWithGoogle = signInWithGoogle;
+export const logoutUser = signOutUser;
+export function getCurrentUser(): User | null {
+  return auth?.currentUser || null;
 }
 
 // ----------------------------------------------------------------------
@@ -1023,6 +1044,7 @@ export async function createValidatedOrder(params: CreateOrderParams): Promise<O
         userId: userId || null,
         customerName,
         phone,
+        whatsapp: shippingAddress.whatsapp || phone,
         email,
         items: validatedItems,
         shippingAddress,
