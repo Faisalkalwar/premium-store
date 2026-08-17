@@ -1,15 +1,5 @@
-import {
-  initializeApp,
-  getApps,
-  getApp,
-  FirebaseApp,
-} from 'firebase/app';
-
-import {
-  getAuth,
-  Auth,
-} from 'firebase/auth';
-
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
 import {
   initializeFirestore,
   getFirestore,
@@ -17,14 +7,9 @@ import {
   doc,
   getDocFromServer,
   setLogLevel,
-} from 'firebase/firestore';
-
-import {
-  getStorage,
-  FirebaseStorage,
-} from 'firebase/storage';
-
-import firebaseConfigJson from '../../firebase-applet-config.json';
+} from "firebase/firestore";
+import { getStorage, FirebaseStorage } from "firebase/storage";
+import firebaseConfigJson from "../../firebase-applet-config.json";
 
 interface FirebaseConfig {
   apiKey?: string;
@@ -36,74 +21,50 @@ interface FirebaseConfig {
   firestoreDatabaseId?: string;
 }
 
-// ============================================================
-// FIREBASE CONFIGURATION
-// ============================================================
-
 const env = (import.meta as any).env || {};
 
-const targetProjectId =
-  env.VITE_FIREBASE_PROJECT_ID &&
-  env.VITE_FIREBASE_PROJECT_ID.trim()
-    ? env.VITE_FIREBASE_PROJECT_ID.trim()
-    : firebaseConfigJson?.projectId || 'premium-store-9c496';
+/*
+ * PREMIUM STORE FIREBASE CONFIG
+ *
+ * IMPORTANT:
+ * authDomain MUST be the Firebase domain.
+ * DO NOT use the Vercel domain here.
+ */
 
-// ============================================================
-// AUTH DOMAIN
-// ============================================================
-
-let targetAuthDomain =
-  env.VITE_FIREBASE_AUTH_DOMAIN &&
-  env.VITE_FIREBASE_AUTH_DOMAIN.trim()
-    ? env.VITE_FIREBASE_AUTH_DOMAIN.trim()
-    : firebaseConfigJson?.authDomain;
-
-if (
-  !targetAuthDomain ||
-  targetAuthDomain.includes('vercel.app') ||
-  targetAuthDomain.startsWith('http')
-) {
-  targetAuthDomain = `${targetProjectId}.firebaseapp.com`;
-}
-
-// ============================================================
-// FIREBASE CONFIG
-// ============================================================
-
-const rawConfig: FirebaseConfig = {
+const firebaseConfig: FirebaseConfig = {
   apiKey:
-    (env.VITE_FIREBASE_API_KEY &&
-      env.VITE_FIREBASE_API_KEY.trim()) ||
-    firebaseConfigJson?.apiKey,
+    env.VITE_FIREBASE_API_KEY ||
+    firebaseConfigJson?.apiKey ||
+    "",
 
-  authDomain: targetAuthDomain,
+  // FORCE CORRECT FIREBASE AUTH DOMAIN
+  authDomain: "premium-store-9c496.firebaseapp.com",
 
-  projectId: targetProjectId,
+  projectId:
+    env.VITE_FIREBASE_PROJECT_ID ||
+    firebaseConfigJson?.projectId ||
+    "premium-store-9c496",
 
   storageBucket:
-    (env.VITE_FIREBASE_STORAGE_BUCKET &&
-      env.VITE_FIREBASE_STORAGE_BUCKET.trim()) ||
-    firebaseConfigJson?.storageBucket,
+    env.VITE_FIREBASE_STORAGE_BUCKET ||
+    firebaseConfigJson?.storageBucket ||
+    "premium-store-9c496.firebasestorage.app",
 
   messagingSenderId:
-    (env.VITE_FIREBASE_MESSAGING_SENDER_ID &&
-      env.VITE_FIREBASE_MESSAGING_SENDER_ID.trim()) ||
-    firebaseConfigJson?.messagingSenderId,
+    env.VITE_FIREBASE_MESSAGING_SENDER_ID ||
+    firebaseConfigJson?.messagingSenderId ||
+    "551513949790",
 
   appId:
-    (env.VITE_FIREBASE_APP_ID &&
-      env.VITE_FIREBASE_APP_ID.trim()) ||
-    firebaseConfigJson?.appId,
+    env.VITE_FIREBASE_APP_ID ||
+    firebaseConfigJson?.appId ||
+    "1:551513949790:web:435e77948358c8657c56cf",
 
   firestoreDatabaseId:
-    (env.VITE_FIREBASE_DATABASE_ID &&
-      env.VITE_FIREBASE_DATABASE_ID.trim()) ||
-    firebaseConfigJson?.firestoreDatabaseId,
+    env.VITE_FIREBASE_DATABASE_ID ||
+    firebaseConfigJson?.firestoreDatabaseId ||
+    "G-273J1BRTRF",
 };
-
-// ============================================================
-// FIREBASE SERVICES
-// ============================================================
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
@@ -113,70 +74,59 @@ let storage: FirebaseStorage | null = null;
 let isFirebaseConfigured = false;
 let firebaseInitError: string | null = null;
 
-// ============================================================
-// INITIALIZE FIREBASE
-// ============================================================
-
 try {
-  if (rawConfig.apiKey && rawConfig.projectId) {
-    // ----------------------------------------------------------
-    // Initialize Firebase App
-    // ----------------------------------------------------------
+  if (firebaseConfig.apiKey && firebaseConfig.projectId) {
 
+    /*
+     * Initialize Firebase only once
+     */
     if (!getApps().length) {
       app = initializeApp({
-        apiKey: rawConfig.apiKey,
-        authDomain: rawConfig.authDomain,
-        projectId: rawConfig.projectId,
-        storageBucket: rawConfig.storageBucket,
-        messagingSenderId: rawConfig.messagingSenderId,
-        appId: rawConfig.appId,
+        apiKey: firebaseConfig.apiKey,
+        authDomain: firebaseConfig.authDomain,
+        projectId: firebaseConfig.projectId,
+        storageBucket: firebaseConfig.storageBucket,
+        messagingSenderId: firebaseConfig.messagingSenderId,
+        appId: firebaseConfig.appId,
       });
     } else {
       app = getApp();
     }
 
-    // ----------------------------------------------------------
-    // Firebase Authentication
-    // ----------------------------------------------------------
-
+    /*
+     * Firebase Authentication
+     */
     auth = getAuth(app);
 
-    // ==========================================================
-    // FIREBASE RUNTIME DEBUG
-    // ==========================================================
+    /*
+     * Debug information
+     * This will help us verify the production configuration.
+     */
+    console.log("========================================");
+    console.log("PREMIUM STORE FIREBASE CONFIG");
+    console.log("========================================");
+    console.log("Website Origin:", window.location.origin);
+    console.log("Firebase Project ID:", auth.app.options.projectId);
+    console.log("Firebase Auth Domain:", auth.app.options.authDomain);
+    console.log("Firebase App ID:", auth.app.options.appId);
+    console.log("========================================");
 
-    console.log('🔥 FIREBASE RUNTIME CHECK', {
-      origin:
-        typeof window !== 'undefined'
-          ? window.location.origin
-          : 'server',
-
-      projectId: auth.app.options.projectId,
-
-      authDomain: auth.app.options.authDomain,
-
-      apiKey: auth.app.options.apiKey,
-    });
-
-    // ----------------------------------------------------------
-    // Reduce Firebase console logs
-    // ----------------------------------------------------------
-
+    /*
+     * Reduce Firebase console logs
+     */
     try {
-      setLogLevel('error');
+      setLogLevel("error");
     } catch {
-      // Ignore logging configuration errors
+      // Ignore logging errors
     }
 
-    // ----------------------------------------------------------
-    // Firestore
-    // ----------------------------------------------------------
-
+    /*
+     * Firestore
+     */
     const databaseId =
-      rawConfig.firestoreDatabaseId &&
-      rawConfig.firestoreDatabaseId !== '(default)'
-        ? rawConfig.firestoreDatabaseId
+      firebaseConfig.firestoreDatabaseId &&
+      firebaseConfig.firestoreDatabaseId !== "(default)"
+        ? firebaseConfig.firestoreDatabaseId
         : undefined;
 
     try {
@@ -199,52 +149,45 @@ try {
         : getFirestore(app);
     }
 
-    // ----------------------------------------------------------
-    // Firebase Storage
-    // ----------------------------------------------------------
-
+    /*
+     * Firebase Storage
+     */
     storage = getStorage(app);
 
     isFirebaseConfigured = true;
+
   } else {
-    firebaseInitError =
-      'Firebase credentials missing in config.';
+    firebaseInitError = "Firebase credentials are missing.";
+    console.error(firebaseInitError);
   }
+
 } catch (error: any) {
-  console.warn(
-    'Firebase initialization warning:',
-    error
-  );
+  console.error("Firebase initialization error:", error);
 
   firebaseInitError =
-    error?.message ||
-    'Failed to initialize Firebase';
+    error?.message || "Failed to initialize Firebase";
 
   isFirebaseConfigured = false;
 }
 
-// ============================================================
-// FIRESTORE ERROR TYPES
-// ============================================================
-
+/*
+ * Firestore operation types
+ */
 export enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
+  CREATE = "create",
+  UPDATE = "update",
+  DELETE = "delete",
+  LIST = "list",
+  GET = "get",
+  WRITE = "write",
 }
 
-// ============================================================
-// FIRESTORE ERROR INFO
-// ============================================================
-
+/*
+ * Firestore error information
+ */
 export interface FirestoreErrorInfo {
   error: string;
-
   operationType: OperationType;
-
   path: string | null;
 
   authInfo: {
@@ -261,15 +204,15 @@ export interface FirestoreErrorInfo {
   };
 }
 
-// ============================================================
-// FIRESTORE ERROR HANDLER
-// ============================================================
-
+/*
+ * Firestore error handler
+ */
 export function handleFirestoreError(
   error: unknown,
   operationType: OperationType,
   path: string | null
 ): never {
+
   const errInfo: FirestoreErrorInfo = {
     error:
       error instanceof Error
@@ -277,18 +220,12 @@ export function handleFirestoreError(
         : String(error),
 
     authInfo: {
-      userId:
-        auth?.currentUser?.uid || null,
-
-      email:
-        auth?.currentUser?.email || null,
-
+      userId: auth?.currentUser?.uid || null,
+      email: auth?.currentUser?.email || null,
       emailVerified:
         auth?.currentUser?.emailVerified || null,
-
       isAnonymous:
         auth?.currentUser?.isAnonymous || null,
-
       tenantId:
         auth?.currentUser?.tenantId || null,
 
@@ -302,43 +239,44 @@ export function handleFirestoreError(
     },
 
     operationType,
-
     path,
   };
 
   console.warn(
-    'Firestore Error Info:',
+    "Firestore Error Info:",
     JSON.stringify(errInfo)
   );
 
-  throw new Error(
-    JSON.stringify(errInfo)
-  );
+  throw new Error(JSON.stringify(errInfo));
 }
 
-// ============================================================
-// FIREBASE CONNECTION TEST
-// ============================================================
-
+/*
+ * Test Firebase connection
+ */
 export async function testConnection() {
+
   if (!db) {
+    console.warn("Firestore is not initialized.");
     return false;
   }
 
   try {
+
     await getDocFromServer(
-      doc(db, 'test', 'connection')
+      doc(db, "test", "connection")
     );
 
     return true;
+
   } catch (error: any) {
+
     if (
-      error?.message?.includes('offline') ||
-      error?.message?.includes('unavailable') ||
-      error?.code === 'unavailable'
+      error?.message?.includes("offline") ||
+      error?.message?.includes("unavailable") ||
+      error?.code === "unavailable"
     ) {
       console.warn(
-        'Firebase connection check: client is offline or backend unavailable.'
+        "Firebase connection check: backend unavailable."
       );
     }
 
@@ -346,18 +284,16 @@ export async function testConnection() {
   }
 }
 
-// ============================================================
-// AUTHENTICATION HELPERS
-// ============================================================
-
+/*
+ * Get currently logged-in user
+ */
 export function getCurrentUser() {
   return auth?.currentUser || null;
 }
 
-// ============================================================
-// REGISTER USER
-// ============================================================
-
+/*
+ * Register user
+ */
 export async function registerUser(
   email: string,
   pass: string,
@@ -365,9 +301,7 @@ export async function registerUser(
 ) {
   const {
     registerWithEmailPassword,
-  } = await import(
-    '../services/firebaseService'
-  );
+  } = await import("../services/firebaseService");
 
   return registerWithEmailPassword(
     email,
@@ -376,19 +310,16 @@ export async function registerUser(
   );
 }
 
-// ============================================================
-// LOGIN USER
-// ============================================================
-
+/*
+ * Login user
+ */
 export async function loginUser(
   email: string,
   pass: string
 ) {
   const {
     loginWithEmailPassword,
-  } = await import(
-    '../services/firebaseService'
-  );
+  } = await import("../services/firebaseService");
 
   return loginWithEmailPassword(
     email,
@@ -396,38 +327,33 @@ export async function loginUser(
   );
 }
 
-// ============================================================
-// GOOGLE LOGIN
-// ============================================================
-
+/*
+ * Google Login
+ */
 export async function loginWithGoogle() {
+
   const {
     signInWithGoogle,
-  } = await import(
-    '../services/firebaseService'
-  );
+  } = await import("../services/firebaseService");
 
   return signInWithGoogle();
 }
 
-// ============================================================
-// LOGOUT
-// ============================================================
-
+/*
+ * Logout
+ */
 export async function logoutUser() {
+
   const {
     signOutUser,
-  } = await import(
-    '../services/firebaseService'
-  );
+  } = await import("../services/firebaseService");
 
   return signOutUser();
 }
 
-// ============================================================
-// EXPORTS
-// ============================================================
-
+/*
+ * Export Firebase services
+ */
 export {
   app,
   auth,
