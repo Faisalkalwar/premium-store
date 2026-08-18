@@ -1,0 +1,17 @@
+PREMIUM STORE - FIREBASE CHECKOUT FIX
+
+The checkout error was caused by Firestore rules not allowing writes to the root
+/orders/{orderId} collection. This project includes corrected firestore.rules.
+
+IMPORTANT:
+Uploading this project to GitHub/Vercel does NOT automatically publish Firestore
+Security Rules. After deploying the website, open Firebase Console > Firestore
+Database > Rules, replace the existing rules with the contents of firestore.rules,
+and click Publish.
+
+The project now uses the default Firestore database from firebase-applet-config.json.
+Do not set VITE_FIREBASE_DATABASE_ID to a Google Analytics Measurement ID such as G-....
+If Vercel has VITE_FIREBASE_DATABASE_ID configured, remove it unless you intentionally
+use a custom Firestore database ID.
+
+Do not commit .env.local or real secrets to GitHub.

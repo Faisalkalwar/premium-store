@@ -54,17 +54,23 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Orders: Authenticated customers or guests can create orders; owners & admins can read; admins update/delete
+    // Orders: customers/guests can create; only the owner or admin can read;
+    // only admins can update/delete.
     match /orders/{orderId} {
-      allow create: if (
-        (isAuthenticated() && (request.resource.data.userId == request.auth.uid || request.resource.data.userId == null || request.resource.data.userId == "")) ||
-        (!isAuthenticated() && (request.resource.data.userId == null || request.resource.data.userId == ""))
-      );
-      allow read: if isAdmin() || 
-                  (isAuthenticated() && resource.data.userId == request.auth.uid) ||
-                  (resource.data.userId == null || resource.data.userId == "");
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create: if
+        (isAuthenticated() &&
+          (request.resource.data.userId == request.auth.uid ||
+           request.resource.data.userId == null ||
+           request.resource.data.userId == "")) ||
+        (!isAuthenticated() &&
+          (request.resource.data.userId == null ||
+           request.resource.data.userId == ""));
+
+      allow read: if isAdmin() ||
+        (isAuthenticated() &&
+         resource.data.userId == request.auth.uid);
+
+      allow update, delete: if isAdmin();
     }
 
     // Wishlists: Owner or admin manage wishlist
