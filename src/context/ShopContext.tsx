@@ -76,7 +76,6 @@ interface ShopContextType {
 
   // Admin Session & Authorization
   isAdminSession: boolean;
-  unlockAdminSession: (key: string) => boolean;
   lockAdminSession: () => void;
 
   // Products & Collections
@@ -206,33 +205,25 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const [editingProductId, setEditingProductId] = useState<string | null>(() => {
     const path = window.location.pathname.toLowerCase();
-    if (path.startsWith('/admin/products/') && path.endsWith('/edit')) {
-      return path.replace('/admin/products/', '').replace('/edit', '').trim();
+    if (path.startsWith('/premium-control-7391/products/') && path.endsWith('/edit')) {
+      return path.replace('/premium-control-7391/products/', '').replace('/edit', '').trim();
     }
     return null;
   });
 
-  const [isAdminUnlocked, setIsAdminUnlocked] = useState<boolean>(() => {
-    try {
-      return sessionStorage.getItem('admin_unlocked') === 'true';
-    } catch {
-      return false;
-    }
-  });
-
   const [currentView, setCurrentView] = useState<ViewType>(() => {
     const path = window.location.pathname.toLowerCase();
-    if (path.startsWith('/admin/products/') && path.endsWith('/edit')) return 'admin-product-edit';
-    if (path === '/admin/products/new') return 'admin-product-new';
-    if (path === '/admin/products') return 'admin-products';
-    if (path === '/admin/categories') return 'admin-categories';
-    if (path === '/admin/collections') return 'admin-collections';
-    if (path === '/admin/inventory') return 'admin-inventory';
-    if (path === '/admin/orders') return 'admin-orders';
-    if (path === '/admin/customers') return 'admin-customers';
-    if (path === '/admin/content') return 'admin-content';
-    if (path === '/admin/settings') return 'admin-settings';
-    if (path === '/admin') return 'admin';
+    if (path.startsWith('/premium-control-7391/products/') && path.endsWith('/edit')) return 'admin-product-edit';
+    if (path === '/premium-control-7391/products/new') return 'admin-product-new';
+    if (path === '/premium-control-7391/products') return 'admin-products';
+    if (path === '/premium-control-7391/categories') return 'admin-categories';
+    if (path === '/premium-control-7391/collections') return 'admin-collections';
+    if (path === '/premium-control-7391/inventory') return 'admin-inventory';
+    if (path === '/premium-control-7391/orders') return 'admin-orders';
+    if (path === '/premium-control-7391/customers') return 'admin-customers';
+    if (path === '/premium-control-7391/content') return 'admin-content';
+    if (path === '/premium-control-7391/settings') return 'admin-settings';
+    if (path === '/premium-control-7391') return 'admin';
     if (path.startsWith('/product/')) return 'product';
     if (path === '/cart') return 'cart';
     if (path === '/wishlist') return 'wishlist';
@@ -270,22 +261,12 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   };
 
-  const unlockAdminSession = (key: string): boolean => {
-    if (key === 'admin123' || key.toLowerCase() === 'admin' || key === 'ps-admin-2026') {
-      setIsAdminUnlocked(true);
-      try {
-        sessionStorage.setItem('admin_unlocked', 'true');
-      } catch (e) {}
-      return true;
-    }
-    return false;
-  };
-
   const lockAdminSession = () => {
-    setIsAdminUnlocked(false);
-    try {
-      sessionStorage.removeItem('admin_unlocked');
-    } catch (e) {}
+    // Admin access is backed by Firebase Authentication + the Firestore admin role.
+    // Signing out here invalidates the admin session instead of relying on a client-side flag.
+    void signOutUser();
+    setUser(null);
+    setUserProfile(null);
   };
 
   const navigateTo = (view: ViewType) => {
@@ -300,17 +281,17 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (view === 'register') path = '/register';
     if (view === 'forgot-password') path = '/forgot-password';
     if (view === 'account') path = '/account';
-    if (view === 'admin') path = '/admin';
-    if (view === 'admin-products') path = '/admin/products';
-    if (view === 'admin-product-new') path = '/admin/products/new';
-    if (view === 'admin-product-edit') path = `/admin/products/${editingProductId || 'edit'}/edit`;
-    if (view === 'admin-categories') path = '/admin/categories';
-    if (view === 'admin-collections') path = '/admin/collections';
-    if (view === 'admin-inventory') path = '/admin/inventory';
-    if (view === 'admin-orders') path = '/admin/orders';
-    if (view === 'admin-customers') path = '/admin/customers';
-    if (view === 'admin-content') path = '/admin/content';
-    if (view === 'admin-settings') path = '/admin/settings';
+    if (view === 'admin') path = '/premium-control-7391';
+    if (view === 'admin-products') path = '/premium-control-7391/products';
+    if (view === 'admin-product-new') path = '/premium-control-7391/products/new';
+    if (view === 'admin-product-edit') path = `/premium-control-7391/products/${editingProductId || 'edit'}/edit`;
+    if (view === 'admin-categories') path = '/premium-control-7391/categories';
+    if (view === 'admin-collections') path = '/premium-control-7391/collections';
+    if (view === 'admin-inventory') path = '/premium-control-7391/inventory';
+    if (view === 'admin-orders') path = '/premium-control-7391/orders';
+    if (view === 'admin-customers') path = '/premium-control-7391/customers';
+    if (view === 'admin-content') path = '/premium-control-7391/content';
+    if (view === 'admin-settings') path = '/premium-control-7391/settings';
 
     if (window.location.pathname !== path) {
       window.history.pushState(null, '', path);
@@ -370,7 +351,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const navigateToAdminProductEdit = (productId: string) => {
     setEditingProductId(productId);
     setCurrentView('admin-product-edit');
-    const path = `/admin/products/${productId}/edit`;
+    const path = `/premium-control-7391/products/${productId}/edit`;
     if (window.location.pathname !== path) {
       window.history.pushState(null, '', path);
     }
@@ -381,29 +362,29 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname.toLowerCase();
-      if (path.startsWith('/admin/products/') && path.endsWith('/edit')) {
-        const id = path.replace('/admin/products/', '').replace('/edit', '').trim();
+      if (path.startsWith('/premium-control-7391/products/') && path.endsWith('/edit')) {
+        const id = path.replace('/premium-control-7391/products/', '').replace('/edit', '').trim();
         setEditingProductId(id);
         setCurrentView('admin-product-edit');
-      } else if (path === '/admin/products/new') {
+      } else if (path === '/premium-control-7391/products/new') {
         setCurrentView('admin-product-new');
-      } else if (path === '/admin/products') {
+      } else if (path === '/premium-control-7391/products') {
         setCurrentView('admin-products');
-      } else if (path === '/admin/categories') {
+      } else if (path === '/premium-control-7391/categories') {
         setCurrentView('admin-categories');
-      } else if (path === '/admin/collections') {
+      } else if (path === '/premium-control-7391/collections') {
         setCurrentView('admin-collections');
-      } else if (path === '/admin/inventory') {
+      } else if (path === '/premium-control-7391/inventory') {
         setCurrentView('admin-inventory');
-      } else if (path === '/admin/orders') {
+      } else if (path === '/premium-control-7391/orders') {
         setCurrentView('admin-orders');
-      } else if (path === '/admin/customers') {
+      } else if (path === '/premium-control-7391/customers') {
         setCurrentView('admin-customers');
-      } else if (path === '/admin/content') {
+      } else if (path === '/premium-control-7391/content') {
         setCurrentView('admin-content');
-      } else if (path === '/admin/settings') {
+      } else if (path === '/premium-control-7391/settings') {
         setCurrentView('admin-settings');
-      } else if (path === '/admin') {
+      } else if (path === '/premium-control-7391') {
         setCurrentView('admin');
       } else if (path.startsWith('/product/')) {
         const slug = path.replace('/product/', '').trim();
@@ -463,7 +444,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUserProfile(profile);
   };
 
-  const isAdminSession = userProfile?.role === 'admin' || isAdminUnlocked;
+  const isAdminSession = userProfile?.role === 'admin';
 
   // Subscribe to Auth state & sync user profile, cart, and wishlist
   useEffect(() => {
@@ -775,7 +756,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         navigateToAdminProductEdit,
 
         isAdminSession,
-        unlockAdminSession,
         lockAdminSession,
 
         products,

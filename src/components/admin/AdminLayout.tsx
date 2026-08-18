@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getUserProfile, loginWithEmailPassword, sendPasswordReset, signOutUser } from '../../services/firebaseService';
 import {
   LayoutDashboard as DashIcon,
   Package as ProdIcon,
@@ -12,6 +13,8 @@ import {
   ArrowLeft as BackIcon,
   ShieldAlert as AlertIcon,
   Key as KeyIcon,
+  Mail as MailIcon,
+  Loader2 as LoaderIcon,
   LogOut as ExitIcon,
   ExternalLink as LinkIcon,
   ChevronRight as ChevronIcon,
@@ -31,23 +34,67 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeSectio
     currentView,
     navigateTo,
     isAdminSession,
-    unlockAdminSession,
     lockAdminSession,
     user,
     userProfile,
     showToast,
   } = useShop();
 
-  const [accessKey, setAccessKey] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [resetMsg, setResetMsg] = useState('');
 
-  const handleUnlock = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (unlockAdminSession(accessKey)) {
-      setErrorMsg('');
-      showToast('Admin Portal Unlocked Successfully!');
+    setErrorMsg('');
+    setResetMsg('');
+
+    if (!email.trim() || !password) {
+      setErrorMsg('Enter the administrator email and password.');
+      return;
+    }
+
+    setIsLoading(true);
+    const result = await loginWithEmailPassword(email.trim(), password);
+
+    if (!result.user) {
+      setIsLoading(false);
+      setErrorMsg(result.error || 'Unable to sign in.');
+      return;
+    }
+
+    // The Firestore rules also enforce the admin role. The UI check only provides
+    // a clear message and prevents non-admin accounts from entering the console.
+    const profile = await getUserProfile(result.user.uid);
+    if (profile?.role !== 'admin') {
+      await signOutUser();
+      setIsLoading(false);
+      setErrorMsg('This account is not authorized as an administrator.');
+      return;
+    }
+
+    setIsLoading(false);
+    showToast('Admin login successful.');
+  };
+
+  const handlePasswordReset = async () => {
+    setErrorMsg('');
+    setResetMsg('');
+    if (!email.trim()) {
+      setErrorMsg('Enter your admin email first, then click “Forgot password?”.');
+      return;
+    }
+
+    setIsResetting(true);
+    const result = await sendPasswordReset(email.trim());
+    setIsResetting(false);
+    if (result.success) {
+      setResetMsg('Password reset email sent. Check your inbox.');
     } else {
-      setErrorMsg('Invalid Admin Access Key. Try "admin123".');
+      setErrorMsg(result.error || 'Could not send the password reset email.');
     }
   };
 
@@ -68,41 +115,74 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeSectio
             </p>
           </div>
 
-          <form onSubmit={handleUnlock} className="space-y-4">
+          <form onSubmit={handleAdminLogin} className="space-y-4">
             <div>
               <label className="block font-mono text-[10px] uppercase text-neutral-400 mb-1">
-                ENTER ADMIN ACCESS PASSKEY
+                ADMIN EMAIL ADDRESS
               </label>
               <div className="relative">
                 <input
+                  type="email"
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@yourstore.com"
+                  className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#00e65c] text-white px-4 py-3 font-mono text-sm pl-10 focus:outline-none transition-colors"
+                />
+                <MailIcon className="absolute left-3 top-3.5 text-neutral-500" size={16} />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block font-mono text-[10px] uppercase text-neutral-400">
+                  ADMIN PASSWORD
+                </label>
+                <button
+                  type="button"
+                  onClick={handlePasswordReset}
+                  disabled={isResetting}
+                  className="font-mono text-[10px] uppercase text-[#00e65c] hover:underline disabled:opacity-50"
+                >
+                  {isResetting ? 'SENDING...' : 'FORGOT PASSWORD?'}
+                </button>
+              </div>
+              <div className="relative">
+                <input
                   type="password"
-                  value={accessKey}
-                  onChange={(e) => setAccessKey(e.target.value)}
-                  placeholder="e.g. admin123"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
                   className="w-full bg-neutral-950 border border-neutral-800 focus:border-[#00e65c] text-white px-4 py-3 font-mono text-sm pl-10 focus:outline-none transition-colors"
                 />
                 <KeyIcon className="absolute left-3 top-3.5 text-neutral-500" size={16} />
               </div>
-              {errorMsg && (
-                <p className="font-mono text-xs text-red-400 mt-1.5 flex items-center gap-1">
-                  <AlertIcon size={12} />
-                  <span>{errorMsg}</span>
-                </p>
-              )}
             </div>
+
+            {errorMsg && (
+              <p className="font-mono text-xs text-red-400 flex items-center gap-1">
+                <AlertIcon size={12} />
+                <span>{errorMsg}</span>
+              </p>
+            )}
+            {resetMsg && (
+              <p className="font-mono text-xs text-[#00e65c]">{resetMsg}</p>
+            )}
 
             <button
               type="submit"
-              className="w-full bg-[#00e65c] text-black font-syne font-extrabold py-3 text-xs uppercase tracking-wider hover:bg-[#00ff66] transition-colors flex items-center justify-center gap-2"
+              disabled={isLoading}
+              className="w-full bg-[#00e65c] text-black font-syne font-extrabold py-3 text-xs uppercase tracking-wider hover:bg-[#00ff66] transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              <UserCheckIcon size={16} />
-              <span>UNLOCK ADMIN PORTAL</span>
+              {isLoading ? <LoaderIcon size={16} className="animate-spin" /> : <UserCheckIcon size={16} />}
+              <span>{isLoading ? 'SIGNING IN...' : 'SIGN IN TO ADMIN'}</span>
             </button>
           </form>
 
           <div className="pt-4 border-t border-neutral-800 text-center space-y-3">
             <p className="font-mono text-[10px] text-neutral-500">
-              Demo Admin Passkey: <code className="text-[#00e65c] font-bold">admin123</code>
+              Secure Firebase administrator authentication
             </p>
             <button
               onClick={() => navigateTo('home')}

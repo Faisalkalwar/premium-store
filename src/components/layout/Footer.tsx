@@ -1,6 +1,6 @@
 import React from 'react';
 import { Logo } from './Logo';
-import { Instagram, MessageSquare, Mail, MapPin, ShieldCheck, Globe, ArrowUp } from 'lucide-react';
+import { Instagram, MessageSquare, Mail, MapPin, Globe, ArrowUp } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { ProductCategory } from '../../types';
 
@@ -160,15 +160,6 @@ export const Footer: React.FC = () => {
               <li>
                 <button onClick={() => navigateTo('account-orders')} className="hover:text-white transition-colors">
                   Track Your Orders
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => navigateTo('admin')}
-                  className="text-[#00e65c] font-bold hover:underline transition-colors flex items-center gap-1"
-                >
-                  <ShieldCheck size={12} />
-                  <span>Admin Portal</span>
                 </button>
               </li>
             </ul>
