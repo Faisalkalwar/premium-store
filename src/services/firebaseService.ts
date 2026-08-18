@@ -1072,11 +1072,16 @@ export async function createValidatedOrder(params: CreateOrderParams): Promise<O
         }
       }
 
-      // Financials
+      // Financials in PKR
       const validatedDiscount = calculatedSubtotal * discountRate;
       const validatedShippingFee =
-        calculatedSubtotal >= 75 ? 0 : shippingOption === 'express' ? 18.0 : 9.95;
+        calculatedSubtotal >= 3500 ? 0 : shippingOption === 'express' ? 500 : 250;
       const validatedTotal = Math.max(0, calculatedSubtotal - validatedDiscount + validatedShippingFee);
+
+      const finalShippingAddress: OrderShippingAddress = {
+        ...shippingAddress,
+        streetAddress: shippingAddress.completeAddress || shippingAddress.streetAddress || '',
+      };
 
       const finalOrder: Order = {
         id: orderId,
@@ -1087,11 +1092,11 @@ export async function createValidatedOrder(params: CreateOrderParams): Promise<O
         whatsapp: shippingAddress.whatsapp || phone,
         email,
         items: validatedItems,
-        shippingAddress,
-        subtotal: Number(calculatedSubtotal.toFixed(2)),
-        shippingFee: Number(validatedShippingFee.toFixed(2)),
-        discount: Number(validatedDiscount.toFixed(2)),
-        total: Number(validatedTotal.toFixed(2)),
+        shippingAddress: finalShippingAddress,
+        subtotal: Math.round(calculatedSubtotal),
+        shippingFee: validatedShippingFee,
+        discount: Math.round(validatedDiscount),
+        total: Math.round(validatedTotal),
         paymentMethod: 'Cash on Delivery',
         paymentStatus: 'Pending',
         orderStatus: 'Pending',
@@ -1102,7 +1107,8 @@ export async function createValidatedOrder(params: CreateOrderParams): Promise<O
 
       // Step C: Save order document into Firestore orders collection
       const orderRef = doc(db, 'orders', orderId);
-      await setDoc(orderRef, finalOrder);
+      const cleanOrderData = JSON.parse(JSON.stringify(finalOrder));
+      await setDoc(orderRef, cleanOrderData);
 
       // Attempt inventory update on product docs (admin only; safely ignored for customers/guests)
       for (const update of pendingStockUpdates) {
@@ -1153,7 +1159,8 @@ export async function createValidatedOrder(params: CreateOrderParams): Promise<O
   }
 
   const validatedDiscount = calculatedSubtotal * discountRate;
-  const validatedShippingFee = calculatedSubtotal >= 75 ? 0 : shippingOption === 'express' ? 18.0 : 9.95;
+  const validatedShippingFee =
+    calculatedSubtotal >= 3500 ? 0 : shippingOption === 'express' ? 500 : 250;
   const validatedTotal = Math.max(0, calculatedSubtotal - validatedDiscount + validatedShippingFee);
 
   const localOrder: Order = {
@@ -1164,11 +1171,14 @@ export async function createValidatedOrder(params: CreateOrderParams): Promise<O
     phone,
     email,
     items: validatedItems,
-    shippingAddress,
-    subtotal: Number(calculatedSubtotal.toFixed(2)),
-    shippingFee: Number(validatedShippingFee.toFixed(2)),
-    discount: Number(validatedDiscount.toFixed(2)),
-    total: Number(validatedTotal.toFixed(2)),
+    shippingAddress: {
+      ...shippingAddress,
+      streetAddress: shippingAddress.completeAddress || shippingAddress.streetAddress || '',
+    },
+    subtotal: Math.round(calculatedSubtotal),
+    shippingFee: validatedShippingFee,
+    discount: Math.round(validatedDiscount),
+    total: Math.round(validatedTotal),
     paymentMethod: 'Cash on Delivery',
     paymentStatus: 'Pending',
     orderStatus: 'Pending',

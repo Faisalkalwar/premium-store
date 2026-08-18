@@ -230,6 +230,7 @@ export interface OrderShippingAddress {
   city: string;
   area: string;
   completeAddress: string;
+  streetAddress?: string;
 }
 
 export interface OrderItem {

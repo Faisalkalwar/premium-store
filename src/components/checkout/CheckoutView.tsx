@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldCheck,
   Truck,
@@ -15,11 +15,42 @@ import {
   Phone,
   Mail,
   Building,
-  Home
+  Home,
+  ChevronDown
 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { createValidatedOrder, CreateOrderParams } from '../../services/firebaseService';
 import { OrderShippingAddress, formatPrice } from '../../types';
+import {
+  PAKISTAN_PROVINCES,
+  validatePakistanFullName,
+  validatePakistanMobile,
+  validateEmailAddress,
+  validateProvince,
+  validateCity,
+  validateArea,
+  validateStreetAddress,
+} from '../../data/pakistanLocations';
+
+interface FormErrors {
+  fullName?: string;
+  phone?: string;
+  email?: string;
+  province?: string;
+  city?: string;
+  area?: string;
+  completeAddress?: string;
+}
+
+interface FormTouched {
+  fullName?: boolean;
+  phone?: boolean;
+  email?: boolean;
+  province?: boolean;
+  city?: boolean;
+  area?: boolean;
+  completeAddress?: boolean;
+}
 
 export const CheckoutView: React.FC = () => {
   const {
@@ -43,6 +74,10 @@ export const CheckoutView: React.FC = () => {
   const [area, setArea] = useState('');
   const [completeAddress, setCompleteAddress] = useState('');
 
+  // Field validation & interaction states
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<FormTouched>({});
+
   // Shipping & Promo Code
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
@@ -52,6 +87,18 @@ export const CheckoutView: React.FC = () => {
   // Order Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Form ref for scrolling to error
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Available cities for selected province
+  const availableCities = React.useMemo(() => {
+    if (!province) return [];
+    const provObj = PAKISTAN_PROVINCES.find(
+      (p) => p.name.toLowerCase() === province.toLowerCase()
+    );
+    return provObj ? provObj.cities : [];
+  }, [province]);
 
   // Auto-fill form from user profile or auth
   useEffect(() => {
@@ -64,7 +111,17 @@ export const CheckoutView: React.FC = () => {
       if (defaultAddr) {
         if (defaultAddr.street) setCompleteAddress(defaultAddr.street);
         if (defaultAddr.city) setCity(defaultAddr.city);
-        if (defaultAddr.state) setProvince(defaultAddr.state);
+        if (defaultAddr.state) {
+          // Check if state matches one of the Pakistan provinces
+          const matchProv = PAKISTAN_PROVINCES.find(
+            (p) =>
+              p.name.toLowerCase() === defaultAddr.state.toLowerCase() ||
+              p.code.toLowerCase() === defaultAddr.state.toLowerCase()
+          );
+          if (matchProv) {
+            setProvince(matchProv.name);
+          }
+        }
         if (defaultAddr.name && !fullName) setFullName(defaultAddr.name);
         if (defaultAddr.phone && !phone) setPhone(defaultAddr.phone);
       }
@@ -73,6 +130,115 @@ export const CheckoutView: React.FC = () => {
       if (user.email) setEmail(user.email);
     }
   }, [userProfile, user]);
+
+  // Single field validator
+  const validateSingleField = (
+    fieldName: keyof FormErrors,
+    value: string,
+    currentProvince = province
+  ): string | undefined => {
+    switch (fieldName) {
+      case 'fullName': {
+        const res = validatePakistanFullName(value);
+        return res.isValid ? undefined : res.error;
+      }
+      case 'phone': {
+        const res = validatePakistanMobile(value);
+        return res.isValid ? undefined : res.error;
+      }
+      case 'email': {
+        const res = validateEmailAddress(value);
+        return res.isValid ? undefined : res.error;
+      }
+      case 'province': {
+        const res = validateProvince(value);
+        return res.isValid ? undefined : res.error;
+      }
+      case 'city': {
+        const res = validateCity(currentProvince, value);
+        return res.isValid ? undefined : res.error;
+      }
+      case 'area': {
+        const res = validateArea(value);
+        return res.isValid ? undefined : res.error;
+      }
+      case 'completeAddress': {
+        const res = validateStreetAddress(value);
+        return res.isValid ? undefined : res.error;
+      }
+      default:
+        return undefined;
+    }
+  };
+
+  // Handle onBlur validation
+  const handleBlur = (fieldName: keyof FormErrors) => {
+    setTouched((prev) => ({ ...prev, [fieldName]: true }));
+    let val = '';
+    if (fieldName === 'fullName') val = fullName;
+    else if (fieldName === 'phone') val = phone;
+    else if (fieldName === 'email') val = email;
+    else if (fieldName === 'province') val = province;
+    else if (fieldName === 'city') val = city;
+    else if (fieldName === 'area') val = area;
+    else if (fieldName === 'completeAddress') val = completeAddress;
+
+    const error = validateSingleField(fieldName, val);
+    setErrors((prev) => ({ ...prev, [fieldName]: error }));
+  };
+
+  // Handle Province change (resets city)
+  const handleProvinceChange = (newProvince: string) => {
+    setProvince(newProvince);
+    setCity(''); // Reset dependent city dropdown
+
+    if (touched.province) {
+      const provErr = validateSingleField('province', newProvince);
+      setErrors((prev) => ({ ...prev, province: provErr, city: undefined }));
+    } else {
+      setErrors((prev) => ({ ...prev, city: undefined }));
+    }
+  };
+
+  // Handle City change
+  const handleCityChange = (newCity: string) => {
+    setCity(newCity);
+    if (touched.city) {
+      const cityErr = validateSingleField('city', newCity, province);
+      setErrors((prev) => ({ ...prev, city: cityErr }));
+    }
+  };
+
+  // Validate entire form
+  const validateFullForm = (): { isValid: boolean; newErrors: FormErrors } => {
+    const newErrors: FormErrors = {};
+
+    const nameErr = validateSingleField('fullName', fullName);
+    if (nameErr) newErrors.fullName = nameErr;
+
+    const phoneErr = validateSingleField('phone', phone);
+    if (phoneErr) newErrors.phone = phoneErr;
+
+    const emailErr = validateSingleField('email', email);
+    if (emailErr) newErrors.email = emailErr;
+
+    const provErr = validateSingleField('province', province);
+    if (provErr) newErrors.province = provErr;
+
+    const cityErr = validateSingleField('city', city, province);
+    if (cityErr) newErrors.city = cityErr;
+
+    const areaErr = validateSingleField('area', area);
+    if (areaErr) newErrors.area = areaErr;
+
+    const addressErr = validateSingleField('completeAddress', completeAddress);
+    if (addressErr) newErrors.completeAddress = addressErr;
+
+    return {
+      isValid: Object.keys(newErrors).length === 0,
+      newErrors,
+    };
+  };
 
   // Redirect if cart is empty
   if (cart.length === 0) {
@@ -140,53 +306,53 @@ export const CheckoutView: React.FC = () => {
     e.preventDefault();
     setErrorMessage(null);
 
-    // Form Validations
-    if (!fullName.trim()) {
-      setErrorMessage('Please enter your full name.');
+    // Touch all fields to show any errors
+    setTouched({
+      fullName: true,
+      phone: true,
+      email: true,
+      province: true,
+      city: true,
+      area: true,
+      completeAddress: true,
+    });
+
+    const { isValid, newErrors } = validateFullForm();
+    setErrors(newErrors);
+
+    if (!isValid) {
+      const firstErrorKey = Object.keys(newErrors)[0] as keyof FormErrors;
+      const firstErrorMessage = newErrors[firstErrorKey];
+      setErrorMessage(firstErrorMessage || 'Please complete all required fields correctly before placing your order.');
+      
+      // Scroll to form top smoothly
+      window.scrollTo({ top: 120, behavior: 'smooth' });
       return;
     }
-    if (!phone.trim() || phone.length < 7) {
-      setErrorMessage('Please enter a valid phone number.');
-      return;
-    }
-    if (!email.trim() || !email.includes('@')) {
-      setErrorMessage('Please enter a valid email address.');
-      return;
-    }
-    if (!province.trim()) {
-      setErrorMessage('Please enter your province / state.');
-      return;
-    }
-    if (!city.trim()) {
-      setErrorMessage('Please enter your city.');
-      return;
-    }
-    if (!area.trim()) {
-      setErrorMessage('Please enter your area / district.');
-      return;
-    }
-    if (!completeAddress.trim() || completeAddress.length < 10) {
-      setErrorMessage('Please provide a complete street address (house/building #, street name).');
-      return;
-    }
+
+    // Normalize phone number to Pakistani international standard: +923XXXXXXXXX
+    const phoneValidation = validatePakistanMobile(phone);
+    const normalizedPhone = phoneValidation.normalized || phone.trim();
 
     setIsSubmitting(true);
 
     try {
       const shippingAddressData: OrderShippingAddress = {
         fullName: fullName.trim(),
-        phone: phone.trim(),
+        phone: normalizedPhone,
+        whatsapp: normalizedPhone,
         email: email.trim().toLowerCase(),
         province: province.trim(),
         city: city.trim(),
         area: area.trim(),
         completeAddress: completeAddress.trim(),
+        streetAddress: completeAddress.trim(),
       };
 
       const orderParams: CreateOrderParams = {
         userId: user?.uid || null,
         customerName: fullName.trim(),
-        phone: phone.trim(),
+        phone: normalizedPhone,
         email: email.trim().toLowerCase(),
         cartItems: cart,
         shippingAddress: shippingAddressData,
@@ -194,7 +360,7 @@ export const CheckoutView: React.FC = () => {
         shippingOption,
       };
 
-      // Call validated order creation (validates stock & live Firestore price)
+      // Call validated order creation (validates stock & saves to Firestore)
       const placedOrder = await createValidatedOrder(orderParams);
 
       // Success cleanup
@@ -206,6 +372,7 @@ export const CheckoutView: React.FC = () => {
       setErrorMessage(
         err.message || 'Failed to place order. Please review your cart items and try again.'
       );
+      window.scrollTo({ top: 120, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
     }
@@ -227,6 +394,10 @@ export const CheckoutView: React.FC = () => {
             <h1 className="font-syne font-extrabold text-3xl sm:text-4xl uppercase tracking-wider text-white">
               SECURE CHECKOUT
             </h1>
+            <p className="text-xs font-mono text-neutral-400 mt-1 flex items-center gap-2">
+              <MapPin size={12} className="text-[#00e65c]" />
+              <span>DOMESTIC SHIPPING: PAKISTAN ONLY (ALL PROVINCES & TERRITORIES)</span>
+            </p>
           </div>
 
           <div className="flex items-center gap-2 bg-neutral-900 border border-neutral-800 px-3.5 py-2 text-xs font-mono">
@@ -248,7 +419,7 @@ export const CheckoutView: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <form ref={formRef} onSubmit={handleSubmitOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start" noValidate>
           {/* LEFT COLUMN: CUSTOMER & SHIPPING FORM */}
           <div className="lg:col-span-7 space-y-8">
             {/* STEP 1: CUSTOMER CONTACT */}
@@ -273,61 +444,128 @@ export const CheckoutView: React.FC = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-mono text-neutral-400 mb-2 uppercase">
-                    FULL NAME *
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* FULL NAME */}
+                <div className="sm:col-span-2 space-y-1.5">
+                  <label className="block text-xs font-mono text-neutral-300 uppercase font-medium">
+                    FULL NAME <span className="text-[#00e65c]">*</span>
                   </label>
                   <div className="relative">
                     <input
                       type="text"
+                      name="name"
+                      autoComplete="name"
                       required
                       value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="e.g. Alex Morgan"
-                      className="w-full bg-neutral-900 border border-neutral-800 text-white font-mono text-xs px-3.5 py-3 pl-10 focus:outline-none focus:border-[#00e65c]"
+                      onChange={(e) => {
+                        setFullName(e.target.value);
+                        if (touched.fullName) {
+                          const err = validateSingleField('fullName', e.target.value);
+                          setErrors((prev) => ({ ...prev, fullName: err }));
+                        }
+                      }}
+                      onBlur={() => handleBlur('fullName')}
+                      placeholder="e.g. Muhammad Ali"
+                      className={`w-full bg-neutral-900 border text-white font-mono text-xs px-3.5 py-3 pl-10 focus:outline-none transition-colors ${
+                        touched.fullName && errors.fullName
+                          ? 'border-rose-500 bg-rose-950/20 focus:border-rose-400'
+                          : 'border-neutral-800 focus:border-[#00e65c]'
+                      }`}
                     />
-                    <UserIcon size={16} className="absolute left-3 top-3.5 text-neutral-500" />
+                    <UserIcon size={16} className={`absolute left-3 top-3.5 ${touched.fullName && errors.fullName ? 'text-rose-400' : 'text-neutral-500'}`} />
                   </div>
+                  {touched.fullName && errors.fullName && (
+                    <p className="text-rose-400 font-mono text-[11px] flex items-center gap-1.5 pt-0.5">
+                      <AlertCircle size={12} className="shrink-0" />
+                      <span>{errors.fullName}</span>
+                    </p>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-xs font-mono text-neutral-400 mb-2 uppercase">
-                    PHONE NUMBER *
+                {/* PHONE NUMBER (PAKISTAN MOBILE) */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-mono text-neutral-300 uppercase font-medium flex items-center justify-between">
+                    <span>PHONE NUMBER <span className="text-[#00e65c]">*</span></span>
+                    <span className="text-[10px] text-[#00e65c] bg-[#00e65c]/10 border border-[#00e65c]/30 px-1.5 py-0.5 font-bold">
+                      +92 (PK)
+                    </span>
                   </label>
                   <div className="relative">
                     <input
                       type="tel"
+                      name="tel"
+                      autoComplete="tel"
                       required
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+92 323 0000000"
-                      className="w-full bg-neutral-900 border border-neutral-800 text-white font-mono text-xs px-3.5 py-3 pl-10 focus:outline-none focus:border-[#00e65c]"
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        if (touched.phone) {
+                          const err = validateSingleField('phone', e.target.value);
+                          setErrors((prev) => ({ ...prev, phone: err }));
+                        }
+                      }}
+                      onBlur={() => handleBlur('phone')}
+                      placeholder="+92 300 1234567"
+                      className={`w-full bg-neutral-900 border text-white font-mono text-xs px-3.5 py-3 pl-10 focus:outline-none transition-colors ${
+                        touched.phone && errors.phone
+                          ? 'border-rose-500 bg-rose-950/20 focus:border-rose-400'
+                          : 'border-neutral-800 focus:border-[#00e65c]'
+                      }`}
                     />
-                    <Phone size={16} className="absolute left-3 top-3.5 text-neutral-500" />
+                    <Phone size={16} className={`absolute left-3 top-3.5 ${touched.phone && errors.phone ? 'text-rose-400' : 'text-neutral-500'}`} />
                   </div>
+                  {touched.phone && errors.phone ? (
+                    <p className="text-rose-400 font-mono text-[11px] flex items-center gap-1.5 pt-0.5">
+                      <AlertCircle size={12} className="shrink-0" />
+                      <span>{errors.phone}</span>
+                    </p>
+                  ) : (
+                    <p className="text-neutral-500 font-mono text-[10px]">
+                      Accepts: 03001234567 or +92 300 1234567
+                    </p>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-xs font-mono text-neutral-400 mb-2 uppercase">
-                    EMAIL ADDRESS *
+                {/* EMAIL ADDRESS */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-mono text-neutral-300 uppercase font-medium">
+                    EMAIL ADDRESS <span className="text-[#00e65c]">*</span>
                   </label>
                   <div className="relative">
                     <input
                       type="email"
+                      name="email"
+                      autoComplete="email"
                       required
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="alex@example.com"
-                      className="w-full bg-neutral-900 border border-neutral-800 text-white font-mono text-xs px-3.5 py-3 pl-10 focus:outline-none focus:border-[#00e65c]"
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (touched.email) {
+                          const err = validateSingleField('email', e.target.value);
+                          setErrors((prev) => ({ ...prev, email: err }));
+                        }
+                      }}
+                      onBlur={() => handleBlur('email')}
+                      placeholder="e.g. customer@example.com"
+                      className={`w-full bg-neutral-900 border text-white font-mono text-xs px-3.5 py-3 pl-10 focus:outline-none transition-colors ${
+                        touched.email && errors.email
+                          ? 'border-rose-500 bg-rose-950/20 focus:border-rose-400'
+                          : 'border-neutral-800 focus:border-[#00e65c]'
+                      }`}
                     />
-                    <Mail size={16} className="absolute left-3 top-3.5 text-neutral-500" />
+                    <Mail size={16} className={`absolute left-3 top-3.5 ${touched.email && errors.email ? 'text-rose-400' : 'text-neutral-500'}`} />
                   </div>
+                  {touched.email && errors.email && (
+                    <p className="text-rose-400 font-mono text-[11px] flex items-center gap-1.5 pt-0.5">
+                      <AlertCircle size={12} className="shrink-0" />
+                      <span>{errors.email}</span>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* STEP 2: SHIPPING ADDRESS */}
+            {/* STEP 2: SHIPPING ADDRESS (PAKISTAN ONLY) */}
             <div className="bg-[#0a0a0a] border border-neutral-800 p-6 sm:p-8 space-y-6">
               <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
                 <div className="flex items-center gap-3">
@@ -338,66 +576,167 @@ export const CheckoutView: React.FC = () => {
                     DELIVERY ADDRESS
                   </h2>
                 </div>
+                <span className="text-[10px] font-mono text-neutral-400 uppercase">
+                  🇵🇰 PAKISTAN ONLY
+                </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-mono text-neutral-400 mb-2 uppercase">
-                    PROVINCE / STATE *
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* PROVINCE / TERRITORY (DROPDOWN ONLY) */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-mono text-neutral-300 uppercase font-medium">
+                    PROVINCE / TERRITORY <span className="text-[#00e65c]">*</span>
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={province}
-                    onChange={(e) => setProvince(e.target.value)}
-                    placeholder="e.g. California"
-                    className="w-full bg-neutral-900 border border-neutral-800 text-white font-mono text-xs px-3.5 py-3 focus:outline-none focus:border-[#00e65c]"
-                  />
+                  <div className="relative">
+                    <select
+                      value={province}
+                      onChange={(e) => handleProvinceChange(e.target.value)}
+                      onBlur={() => handleBlur('province')}
+                      required
+                      className={`w-full bg-neutral-900 border text-white font-mono text-xs px-3.5 py-3 pr-9 focus:outline-none appearance-none cursor-pointer transition-colors ${
+                        touched.province && errors.province
+                          ? 'border-rose-500 bg-rose-950/20 focus:border-rose-400'
+                          : 'border-neutral-800 focus:border-[#00e65c]'
+                      }`}
+                    >
+                      <option value="" className="bg-neutral-950 text-neutral-500">
+                        Select Province / Territory
+                      </option>
+                      {PAKISTAN_PROVINCES.map((p) => (
+                        <option key={p.code} value={p.name} className="bg-neutral-950 text-white">
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="absolute right-3 top-3.5 text-neutral-500 pointer-events-none" />
+                  </div>
+                  {touched.province && errors.province && (
+                    <p className="text-rose-400 font-mono text-[11px] flex items-center gap-1.5 pt-0.5">
+                      <AlertCircle size={12} className="shrink-0" />
+                      <span>{errors.province}</span>
+                    </p>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-xs font-mono text-neutral-400 mb-2 uppercase">
-                    CITY *
+                {/* CITY (DEPENDENT DROPDOWN ONLY) */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-mono text-neutral-300 uppercase font-medium">
+                    CITY <span className="text-[#00e65c]">*</span>
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="e.g. Los Angeles"
-                    className="w-full bg-neutral-900 border border-neutral-800 text-white font-mono text-xs px-3.5 py-3 focus:outline-none focus:border-[#00e65c]"
-                  />
+                  <div className="relative">
+                    <select
+                      value={city}
+                      onChange={(e) => handleCityChange(e.target.value)}
+                      onBlur={() => handleBlur('city')}
+                      disabled={!province}
+                      required
+                      className={`w-full bg-neutral-900 border text-white font-mono text-xs px-3.5 py-3 pr-9 focus:outline-none appearance-none transition-colors ${
+                        !province
+                          ? 'opacity-50 cursor-not-allowed border-neutral-800 text-neutral-500'
+                          : 'cursor-pointer'
+                      } ${
+                        touched.city && errors.city
+                          ? 'border-rose-500 bg-rose-950/20 focus:border-rose-400'
+                          : 'border-neutral-800 focus:border-[#00e65c]'
+                      }`}
+                    >
+                      <option value="" className="bg-neutral-950 text-neutral-500">
+                        {province ? 'Select City' : 'Select Province First'}
+                      </option>
+                      {availableCities.map((cityName) => (
+                        <option key={cityName} value={cityName} className="bg-neutral-950 text-white">
+                          {cityName}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="absolute right-3 top-3.5 text-neutral-500 pointer-events-none" />
+                  </div>
+                  {touched.city && errors.city ? (
+                    <p className="text-rose-400 font-mono text-[11px] flex items-center gap-1.5 pt-0.5">
+                      <AlertCircle size={12} className="shrink-0" />
+                      <span>{errors.city}</span>
+                    </p>
+                  ) : !province ? (
+                    <p className="text-neutral-500 font-mono text-[10px]">
+                      Choose a province above to view cities.
+                    </p>
+                  ) : null}
                 </div>
 
-                <div>
-                  <label className="block text-xs font-mono text-neutral-400 mb-2 uppercase">
-                    AREA / DISTRICT *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={area}
-                    onChange={(e) => setArea(e.target.value)}
-                    placeholder="e.g. Downtown / Zone 4"
-                    className="w-full bg-neutral-900 border border-neutral-800 text-white font-mono text-xs px-3.5 py-3 focus:outline-none focus:border-[#00e65c]"
-                  />
-                </div>
-
-                <div className="sm:col-span-3">
-                  <label className="block text-xs font-mono text-neutral-400 mb-2 uppercase">
-                    COMPLETE STREET ADDRESS *
+                {/* AREA / DISTRICT */}
+                <div className="sm:col-span-2 space-y-1.5">
+                  <label className="block text-xs font-mono text-neutral-300 uppercase font-medium">
+                    AREA / DISTRICT <span className="text-[#00e65c]">*</span>
                   </label>
                   <div className="relative">
                     <input
                       type="text"
+                      autoComplete="address-level2"
+                      required
+                      value={area}
+                      onChange={(e) => {
+                        setArea(e.target.value);
+                        if (touched.area) {
+                          const err = validateSingleField('area', e.target.value);
+                          setErrors((prev) => ({ ...prev, area: err }));
+                        }
+                      }}
+                      onBlur={() => handleBlur('area')}
+                      placeholder="e.g. Latifabad / Gulshan-e-Iqbal / Saddar"
+                      className={`w-full bg-neutral-900 border text-white font-mono text-xs px-3.5 py-3 pl-10 focus:outline-none transition-colors ${
+                        touched.area && errors.area
+                          ? 'border-rose-500 bg-rose-950/20 focus:border-rose-400'
+                          : 'border-neutral-800 focus:border-[#00e65c]'
+                      }`}
+                    />
+                    <Building size={16} className={`absolute left-3 top-3.5 ${touched.area && errors.area ? 'text-rose-400' : 'text-neutral-500'}`} />
+                  </div>
+                  {touched.area && errors.area && (
+                    <p className="text-rose-400 font-mono text-[11px] flex items-center gap-1.5 pt-0.5">
+                      <AlertCircle size={12} className="shrink-0" />
+                      <span>{errors.area}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* COMPLETE STREET ADDRESS */}
+                <div className="sm:col-span-2 space-y-1.5">
+                  <label className="block text-xs font-mono text-neutral-300 uppercase font-medium">
+                    COMPLETE STREET ADDRESS <span className="text-[#00e65c]">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      autoComplete="street-address"
                       required
                       value={completeAddress}
-                      onChange={(e) => setCompleteAddress(e.target.value)}
+                      onChange={(e) => {
+                        setCompleteAddress(e.target.value);
+                        if (touched.completeAddress) {
+                          const err = validateSingleField('completeAddress', e.target.value);
+                          setErrors((prev) => ({ ...prev, completeAddress: err }));
+                        }
+                      }}
+                      onBlur={() => handleBlur('completeAddress')}
                       placeholder="House/Apartment #, Street name, Landmark"
-                      className="w-full bg-neutral-900 border border-neutral-800 text-white font-mono text-xs px-3.5 py-3 pl-10 focus:outline-none focus:border-[#00e65c]"
+                      className={`w-full bg-neutral-900 border text-white font-mono text-xs px-3.5 py-3 pl-10 focus:outline-none transition-colors ${
+                        touched.completeAddress && errors.completeAddress
+                          ? 'border-rose-500 bg-rose-950/20 focus:border-rose-400'
+                          : 'border-neutral-800 focus:border-[#00e65c]'
+                      }`}
                     />
-                    <Home size={16} className="absolute left-3 top-3.5 text-neutral-500" />
+                    <Home size={16} className={`absolute left-3 top-3.5 ${touched.completeAddress && errors.completeAddress ? 'text-rose-400' : 'text-neutral-500'}`} />
                   </div>
+                  {touched.completeAddress && errors.completeAddress ? (
+                    <p className="text-rose-400 font-mono text-[11px] flex items-center gap-1.5 pt-0.5">
+                      <AlertCircle size={12} className="shrink-0" />
+                      <span>{errors.completeAddress}</span>
+                    </p>
+                  ) : (
+                    <p className="text-neutral-500 font-mono text-[10px]">
+                      Include house number, building/block name, street, and nearby landmark for courier dispatch.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -423,7 +762,7 @@ export const CheckoutView: React.FC = () => {
                       type="radio"
                       checked
                       readOnly
-                      className="accent-[#00e65c] w-4 h-4"
+                      className="accent-[#00e65c] w-4 h-4 cursor-default"
                     />
                     <div className="flex items-center gap-2">
                       <Banknote size={20} className="text-[#00e65c]" />
@@ -437,17 +776,17 @@ export const CheckoutView: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-xs font-mono text-neutral-400 pl-7 leading-relaxed">
-                  Pay with exact cash directly to the courier upon safe receipt of your package at your doorstep. No prepayment required.
+                  Pay with exact cash in PKR directly to the courier rider upon safe receipt of your package at your doorstep anywhere in Pakistan. No advance payment required.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* RIGHT COLUMN: ORDER SUMMARY & SUBMIT */}
+          {/* RIGHT COLUMN: ORDER SUMMARY & SUBMISSION */}
           <div className="lg:col-span-5 bg-[#0a0a0a] border border-neutral-800 p-6 sm:p-8 space-y-6 sticky top-24">
-            <h2 className="font-syne font-extrabold text-lg uppercase tracking-wider text-white border-b border-neutral-800 pb-4 flex justify-between items-center">
+            <h2 className="font-syne font-extrabold text-lg uppercase tracking-wider text-white border-b border-neutral-800 pb-4 flex items-center justify-between">
               <span>ORDER SUMMARY</span>
-              <span className="text-xs font-mono font-bold text-[#00e65c]">
+              <span className="text-xs font-mono text-neutral-400">
                 {cartCount} {cartCount === 1 ? 'ITEM' : 'ITEMS'}
               </span>
             </h2>
@@ -533,7 +872,7 @@ export const CheckoutView: React.FC = () => {
               )}
 
               <div className="flex justify-between">
-                <span>Shipping</span>
+                <span>Shipping Fee</span>
                 <span className="text-[#00e65c]">
                   {shippingFee === 0 ? 'FREE' : formatPrice(shippingFee)}
                 </span>
@@ -556,7 +895,7 @@ export const CheckoutView: React.FC = () => {
               {isSubmitting ? (
                 <>
                   <RefreshCw size={16} className="animate-spin" />
-                  <span>VALIDATING & CREATING ORDER...</span>
+                  <span>VALIDATING & PLACING ORDER...</span>
                 </>
               ) : (
                 <>
@@ -572,7 +911,7 @@ export const CheckoutView: React.FC = () => {
                 <span>STORE-VALIDATED FIRESTORE TRANSACTION</span>
               </div>
               <p className="text-[10px] font-mono text-neutral-600">
-                By placing this order, you agree to inspect and pay cash upon courier arrival.
+                By placing this order, you agree to inspect and pay cash in PKR upon courier arrival.
               </p>
             </div>
 
@@ -611,3 +950,4 @@ export const CheckoutView: React.FC = () => {
     </div>
   );
 };
+
